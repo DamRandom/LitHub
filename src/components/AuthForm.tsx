@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 
 const AuthForm: React.FC = () => {
@@ -13,9 +14,9 @@ const AuthForm: React.FC = () => {
   return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="relative w-full max-w-md p-6 backdrop-blur-xl rounded-xl shadow-xl border border-[#37332f]">
-        <h2 className="text-2xl font-semibold text-center mb-4 text-[#37332f]">
-          {isLogin ? 'Log in' : 'Sign up'}
-        </h2>
+        <div className="flex justify-center mb-4">
+          <Image src="/logo/logo.png" alt="LitHub Logo" width={150} height={150} />
+        </div>
 
         <form className="space-y-6">
           <div>
@@ -65,7 +66,7 @@ const AuthForm: React.FC = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-[#37332f] mb-4">Or log in with</p> {/* Added margin-bottom here */}
+          <p className="text-sm text-[#37332f] mb-4">Or log in with</p>
           <GoogleLogin
             onSuccess={handleGoogleLogin}
             onError={() => console.log('Login Failed')}
