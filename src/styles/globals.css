@@ -1,10 +1,12 @@
 @import "tailwindcss";
 
+/* Base color variables */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* Theme setup */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,6 +14,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Dark mode styles */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -19,8 +22,33 @@
   }
 }
 
+/* General body styles */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* "Shake" animation */
+@keyframes shake {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Apply shake animation */
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
 }
