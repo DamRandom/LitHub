@@ -24,10 +24,10 @@ const AuthForm: React.FC = () => {
     setErrors(validationErrors);
 
     if (validationErrors.email || validationErrors.password) {
-      setShake(true); 
+      setShake(true);
       setTimeout(() => {
-        setShake(false); 
-      }, 500); 
+        setShake(false);
+      }, 500);
     }
   };
 
@@ -68,12 +68,11 @@ const AuthForm: React.FC = () => {
               placeholder="Enter your email"
             />
             {errors.email && (
-              <div
-                className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${shake ? "animate-shake" : ""}`}
-              >
-                <span className="text-xl cursor-pointer hover:opacity-80" title={errors.email}>
-                  &#33;
-                </span>
+              <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 group ${shake ? "animate-shake" : ""}`}>
+                <span className="text-xl cursor-pointer text-[#37332f] hover:opacity-80">&#33;</span>
+                <div className="absolute -top-9 right-0 bg-[#908a80] text-[#37332f] text-xs px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                  {errors.email}
+                </div>
               </div>
             )}
           </div>
@@ -91,12 +90,11 @@ const AuthForm: React.FC = () => {
               placeholder="Enter your password"
             />
             {errors.password && (
-              <div
-                className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${shake ? "animate-shake" : ""}`}
-              >
-                <span className="text-xl cursor-pointer hover:opacity-80" title={errors.password}>
-                  &#33;
-                </span>
+              <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 group ${shake ? "animate-shake" : ""}`}>
+                <span className="text-xl cursor-pointer text-[#37332f] hover:opacity-80">&#33;</span>
+                <div className="absolute -top-9 right-0 bg-[#908a80] text-[#37332f] text-xs px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                  {errors.password}
+                </div>
               </div>
             )}
           </div>
