@@ -12,12 +12,15 @@ const AuthForm: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [shake, setShake] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleGoogleLogin = (response: CredentialResponse) => {
     console.log(response);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setHasSubmitted(true);
     const validationErrors = validateForm(email, password);
@@ -25,9 +28,35 @@ const AuthForm: React.FC = () => {
 
     if (validationErrors.email || validationErrors.password) {
       setShake(true);
-      setTimeout(() => {
-        setShake(false);
-      }, 500);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccessMessage(data.message || "Login successful.");
+        console.log("Login successful:", data);
+      } else {
+        setErrorMessage(data.message || "Login failed.");
+      }
+    } catch {
+      setErrorMessage("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,7 +93,7 @@ const AuthForm: React.FC = () => {
               id="email"
               value={email}
               onChange={handleEmailChange}
-              className={`mt-1 block w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 transition-all border-[#37332f] focus:ring-[#908a80] bg-white/20 text-[#37332f]`}
+              className="mt-1 block w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 transition-all border-[#37332f] focus:ring-[#908a80] bg-white/20 text-[#37332f]"
               placeholder="Enter your email"
             />
             {errors.email && (
@@ -86,7 +115,7 @@ const AuthForm: React.FC = () => {
               id="password"
               value={password}
               onChange={handlePasswordChange}
-              className={`mt-1 block w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 transition-all border-[#37332f] focus:ring-[#908a80] bg-white/20 text-[#37332f]`}
+              className="mt-1 block w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 transition-all border-[#37332f] focus:ring-[#908a80] bg-white/20 text-[#37332f]"
               placeholder="Enter your password"
             />
             {errors.password && (
@@ -103,11 +132,24 @@ const AuthForm: React.FC = () => {
             <button
               type="submit"
               className="w-full py-3 px-5 bg-[#37332f] text-white rounded-md hover:bg-[#2b2b28] focus:outline-none focus:ring-2 focus:ring-[#908a80]"
+              disabled={isLoading}
             >
-              {isLogin ? "Log in" : "Sign up"}
+              {isLoading ? "Logging in..." : isLogin ? "Log in" : "Sign up"}
             </button>
           </div>
         </form>
+
+        {errorMessage && (
+          <div className="mt-4 text-center text-red-500">
+            <p>{errorMessage}</p>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mt-4 text-center text-green-500">
+            <p>{successMessage}</p>
+          </div>
+        )}
 
         <div className="mt-5 text-center">
           <p className="text-sm text-[#37332f]">
