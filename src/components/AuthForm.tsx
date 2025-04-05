@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { validateForm } from "@/utils/validateForm";
+import { useRouter } from "next/navigation";
 
 const AuthForm: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,7 +15,7 @@ const AuthForm: React.FC = () => {
   const [shake, setShake] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const router = useRouter();
 
   const handleGoogleLogin = (response: CredentialResponse) => {
     console.log(response);
@@ -23,6 +24,7 @@ const AuthForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setHasSubmitted(true);
+
     const validationErrors = validateForm(email, password);
     setErrors(validationErrors);
 
@@ -34,7 +36,6 @@ const AuthForm: React.FC = () => {
 
     setIsLoading(true);
     setErrorMessage("");
-    setSuccessMessage("");
 
     try {
       const res = await fetch("/api/auth", {
@@ -48,13 +49,16 @@ const AuthForm: React.FC = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setSuccessMessage(data.message || "Login successful.");
-        console.log("Login successful:", data);
+        router.push("/home");
       } else {
         setErrorMessage(data.message || "Login failed.");
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
       }
     } catch {
       setErrorMessage("Something went wrong. Please try again.");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
     } finally {
       setIsLoading(false);
     }
@@ -79,10 +83,12 @@ const AuthForm: React.FC = () => {
   return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="relative w-full max-w-md p-6 backdrop-blur-xl rounded-xl shadow-sm border border-[#37332f]">
+        {/* Logo */}
         <div className="flex justify-center mb-4">
           <Image src="/logo/logo.png" alt="LitHub Logo" width={150} height={150} />
         </div>
 
+        {/* Auth form */}
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="relative">
             <label htmlFor="email" className="block text-sm font-medium text-[#37332f]">
@@ -96,11 +102,11 @@ const AuthForm: React.FC = () => {
               className="mt-1 block w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 transition-all border-[#37332f] focus:ring-[#908a80] bg-white/20 text-[#37332f]"
               placeholder="Enter your email"
             />
-            {errors.email && (
+            {(errors.email || errorMessage) && (
               <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 group ${shake ? "animate-shake" : ""}`}>
                 <span className="text-xl cursor-pointer text-[#37332f] hover:opacity-80">&#33;</span>
                 <div className="absolute -top-9 right-0 bg-[#908a80] text-[#37332f] text-xs px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                  {errors.email}
+                  {errors.email || (errorMessage && !errors.email && !errors.password && errorMessage)}
                 </div>
               </div>
             )}
@@ -118,11 +124,11 @@ const AuthForm: React.FC = () => {
               className="mt-1 block w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 transition-all border-[#37332f] focus:ring-[#908a80] bg-white/20 text-[#37332f]"
               placeholder="Enter your password"
             />
-            {errors.password && (
+            {(errors.password || (errorMessage && !errors.email && !errors.password)) && (
               <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 group ${shake ? "animate-shake" : ""}`}>
                 <span className="text-xl cursor-pointer text-[#37332f] hover:opacity-80">&#33;</span>
                 <div className="absolute -top-9 right-0 bg-[#908a80] text-[#37332f] text-xs px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                  {errors.password}
+                  {errors.password || errorMessage}
                 </div>
               </div>
             )}
@@ -139,18 +145,7 @@ const AuthForm: React.FC = () => {
           </div>
         </form>
 
-        {errorMessage && (
-          <div className="mt-4 text-center text-red-500">
-            <p>{errorMessage}</p>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mt-4 text-center text-green-500">
-            <p>{successMessage}</p>
-          </div>
-        )}
-
+        {/* Switch mode */}
         <div className="mt-5 text-center">
           <p className="text-sm text-[#37332f]">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
@@ -160,9 +155,15 @@ const AuthForm: React.FC = () => {
           </p>
         </div>
 
+        {/* Google login */}
         <div className="mt-8 text-center">
           <p className="text-sm text-[#37332f] mb-4">Or log in with</p>
-          <GoogleLogin onSuccess={handleGoogleLogin} onError={() => console.log("Login Failed")} theme="outline" shape="rectangular" />
+          <GoogleLogin
+            onSuccess={handleGoogleLogin}
+            onError={() => console.log("Login Failed")}
+            theme="outline"
+            shape="rectangular"
+          />
         </div>
       </div>
     </div>
