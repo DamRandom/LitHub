@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { FcGoogle } from 'react-icons/fc'
 import { motion } from 'framer-motion'
 import Input from '@/components/Input'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
@@ -25,7 +26,13 @@ export default function LoginPage() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex justify-center mb-8"
         >
-          <img src="/logo/logo.png" alt="Logo" className="h-12" />
+          <Image
+            src="/logo/logo.png"
+            alt="Logo"
+            width={158} 
+            height={48} 
+            className="h-12"
+          />
         </motion.div>
 
         {/* Form */}
@@ -78,7 +85,7 @@ export default function LoginPage() {
             type="submit"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full py-2 px-4 bg-[#8c8378] hover:bg-[#7a7066] text-white font-semibold rounded-lg shadow-md transition duration-200"
+            className="w-full py-2 px-4 bg-[#7a7066] hover:bg-[#8c8378] text-white font-semibold rounded-lg shadow-md transition duration-200"
           >
             Sign in
           </motion.button>
@@ -89,7 +96,6 @@ export default function LoginPage() {
             <span className="px-3 text-sm text-[#2e2d2de5]">or</span>
             <div className="flex-grow h-px bg-[#2e2d2de5] opacity-30" />
           </div>
-
 
           {/* Google Sign In */}
           <motion.button
