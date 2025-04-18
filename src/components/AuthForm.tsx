@@ -2,95 +2,107 @@
 
 import { useState } from 'react'
 import { FcGoogle } from 'react-icons/fc'
+import { motion } from 'framer-motion'
+import Input from '@/components/Input'
 
 export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md p-8  bg-opacity-50 backdrop-blur-lg rounded-2xl shadow-2xl ">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="w-full max-w-md p-8 bg-opacity-50 backdrop-blur-lg rounded-2xl shadow-2xl"
+      >
         {/* Logo */}
-        <div className="flex justify-center mb-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex justify-center mb-8"
+        >
           <img src="/logo/logo.png" alt="Logo" className="h-12" />
-        </div>
+        </motion.div>
 
         {/* Form */}
-        <form className="space-y-6">
-          <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-[#6b4f3b]">
-              First Name
-            </label>
-            <input
-              type="text"
-              id="firstName"
-              className="mt-1 block w-full rounded-lg bg-opacity-40 backdrop-blur-sm px-4 py-2 text-sm text-[#3e2c23] placeholder-[#c8b8ac] focus:outline-none focus:ring-2 focus:ring-[#c7a17a] focus:border-[#c7a17a] shadow-sm"
-              placeholder="John"
-            />
-          </div>
+        <motion.form
+          className="space-y-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Input
+            id="email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
+          <Input
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder=""
+          />
 
-          <div>
-            <label htmlFor="lastName" className="block text-sm font-medium text-[#6b4f3b]">
-              Last Name
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              className="mt-1 block w-full rounded-lg bg-opacity-40 backdrop-blur-sm px-4 py-2 text-sm text-[#3e2c23] placeholder-[#c8b8ac] focus:outline-none focus:ring-2 focus:ring-[#c7a17a] focus:border-[#c7a17a] shadow-sm"
-              placeholder="Doe"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-[#6b4f3b]">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              className="mt-1 block w-full rounded-lg bg-opacity-40 backdrop-blur-sm px-4 py-2 text-sm text-[#3e2c23] placeholder-[#c8b8ac] focus:outline-none focus:ring-2 focus:ring-[#c7a17a] focus:border-[#c7a17a] shadow-sm"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-[#6b4f3b]">
+          {/* Remember Me */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="flex items-center justify-between"
+          >
+            <label className="flex items-center space-x-2 text-sm text-[#2e2d2de5]">
               <input
                 type="checkbox"
                 checked={rememberMe}
-                onChange={() => setRememberMe(!rememberMe)}
-                className="h-4 w-4 rounded border-[#c8b8ac] text-[#c7a17a] focus:ring-[#c7a17a]"
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-[#a59e96] bg-transparent border-[#a59e96] rounded focus:ring-1 focus:ring-[#a59e96]"
               />
-              Remember me
+              <span>Remember me</span>
             </label>
+            <a href="#" className="text-sm text-[#8c8378] hover:underline">
+              Forgot password?
+            </a>
+          </motion.div>
+
+          {/* Submit Button */}
+          <motion.button
+            type="submit"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-2 px-4 bg-[#8c8378] hover:bg-[#7a7066] text-white font-semibold rounded-lg shadow-md transition duration-200"
+          >
+            Sign in
+          </motion.button>
+
+          {/* Divider */}
+          <div className="flex items-center my-4">
+            <div className="flex-grow h-px bg-[#2e2d2de5] opacity-30" />
+            <span className="px-3 text-sm text-[#2e2d2de5]">or</span>
+            <div className="flex-grow h-px bg-[#2e2d2de5] opacity-30" />
           </div>
 
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-[#c7a17a] px-4 py-2 text-white font-semibold hover:bg-[#b88b5f] transition"
-          >
-            Sign In
-          </button>
-        </form>
 
-        {/* Register link */}
-        <p className="mt-6 text-center text-sm text-[#6b4f3b]">
-          Don&apos;t have an account?{' '}
-          <a href="/register" className="text-[#c7a17a] hover:underline">
-            Register
-          </a>
-        </p>
-
-        {/* Google login */}
-        <div className="mt-6">
-          <button
+          {/* Google Sign In */}
+          <motion.button
             type="button"
-            className="flex w-full items-center justify-center gap-3 rounded-lg bg-opacity-40 backdrop-blur-sm border px-4 py-2 text-sm text-[#3e2c23] hover:bg-[#f8f5f0] transition"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-white bg-opacity-20 text-gray-800 font-medium rounded-lg shadow-sm transition duration-300 hover:bg-opacity-30"
           >
-            <FcGoogle className="h-5 w-5" />
+            <FcGoogle className="text-xl" />
             Sign in with Google
-          </button>
-        </div>
-      </div>
+          </motion.button>
+        </motion.form>
+      </motion.div>
     </div>
   )
 }
