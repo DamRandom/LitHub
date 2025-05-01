@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { FcGoogle } from 'react-icons/fc'
 import { motion } from 'framer-motion'
-import Input from '@/components/Input'
+import Input from '@/components/ui/Input'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
