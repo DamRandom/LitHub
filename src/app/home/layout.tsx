@@ -31,12 +31,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased overflow-hidden`}
-      >
-        {children}
-      </body>
-    </html>
+    <div
+      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased overflow-hidden`}
+    >
+      {children}
+    </div>
   );
 }
