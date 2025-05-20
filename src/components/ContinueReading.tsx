@@ -15,12 +15,12 @@ Terrified to lose him, Cat takes desperate steps to keep him safe. But when a st
   const [progress] = useState(48)
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-white p-6">
+    <main className="flex items-center justify-center min-h-screen  p-6">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="backdrop-blur-lg bg-white/10 shadow-2xl p-8 max-w-5xl w-full flex flex-col md:flex-row gap-8"
+        className="backdrop-blur-lg bg-white/10 shadow-2xl rounded-xl p-8 max-w-5xl w-full flex flex-col md:flex-row gap-8"
       >
         <div className="flex-shrink-0 shadow-2xs w-full md:w-1/3">
           <Image
@@ -44,14 +44,14 @@ Terrified to lose him, Cat takes desperate steps to keep him safe. But when a st
           <div className="mt-6 flex items-center justify-between">
             <div className="w-full bg-gray-300 rounded-full h-3 overflow-hidden shadow-inner">
               <div
-                className="h-full bg-gray-500"
+                className="h-full bg-gray-800"
                 style={{ width: `${progress}%` }}
               />
             </div>
             <span className="ml-4 text-sm text-gray-900">{progress}%</span>
           </div>
 
-          <button className="mt-6 self-start bg-gray-500 hover:bg-gray-100 text-white text-sm font-medium px-5 py-2 rounded-full shadow-lg transition-colors">
+          <button className="mt-6 self-start bg-gray-800 hover:bg-gray-100 text-white text-sm font-medium px-5 py-2 rounded-full shadow-lg transition-colors">
             Continue Reading
           </button>
         </div>

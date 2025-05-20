@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <div
-      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased overflow-hidden`}
+      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased`}
     >
       {children}
     </div>
