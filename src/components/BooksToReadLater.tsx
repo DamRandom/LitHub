@@ -35,7 +35,7 @@ export default function BooksToReadLater() {
           {books.map((src, index) => (
             <div
               key={index}
-              className="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-md group"
+              className="relative w-full aspect-[2/3]  overflow-hidden shadow-md group"
             >
               <Image
                 src={src}
