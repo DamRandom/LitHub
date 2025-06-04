@@ -21,7 +21,8 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "LitHub - Your Personal Book Manager",
-  description: "LitHub helps you track, manage, and explore your book collection with ease.",
+  description:
+    "LitHub helps you track, manage, and explore your book collection with ease.",
 };
 
 export default function RootLayout({
@@ -34,7 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased`}
       >
-        {children}
+        <div>{children}</div>
       </body>
     </html>
   );
