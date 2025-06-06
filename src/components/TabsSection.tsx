@@ -2,15 +2,15 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { FaLayerGroup, FaQuoteRight, FaChartBar } from 'react-icons/fa'
+import Image from 'next/image'
 import Collections from './Collections'
 import Quotes from './Quotes'
 import Stats from './Stats'
 
 const tabs = [
-  { name: 'Collections', icon: FaLayerGroup },
-  { name: 'Quotes', icon: FaQuoteRight },
-  { name: 'Stats', icon: FaChartBar }
+  { name: 'Collections', icon: '/images/icons/collections.png' },
+  { name: 'Quotes', icon: '/images/icons/quotes.png' },
+  { name: 'Stats', icon: '/images/icons/stats.png' }
 ]
 
 export default function TabsSection() {
@@ -38,7 +38,7 @@ export default function TabsSection() {
         className="backdrop-blur-lg bg-white/10 shadow-2xl rounded-xl p-8 max-w-5xl w-full flex flex-col gap-6"
       >
         <div className="flex justify-around border-b border-gray-300 pb-4">
-          {tabs.map(({ name, icon: Icon }) => (
+          {tabs.map(({ name, icon }) => (
             <button
               key={name}
               onClick={() => setActiveTab(name)}
@@ -48,7 +48,13 @@ export default function TabsSection() {
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              <Icon className="text-xl mb-1" />
+              <Image
+                src={icon}
+                alt={`${name} icon`}
+                width={24}
+                height={24}
+                className="mb-1"
+              />
               {name}
             </button>
           ))}
