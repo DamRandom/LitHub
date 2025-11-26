@@ -1,32 +1,58 @@
-import Image from "next/image";
-import { motion } from "framer-motion";
-import { useState } from "react";
-import books from "../../public/data/books.json";
+'use client';
+
+import Image from 'next/image';
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+
+interface Book {
+  id: number;
+  title: string;
+  author: string;
+  coverImage: string | null;
+  description: string;
+  status: string;
+  progress?: number;
+}
 
 export default function ContinueReading() {
-  const readingBook = books.find((book) => book.status === "reading");
+  const [readingBook, setReadingBook] = useState<Book | null>(null);
+  const [progress, setProgress] = useState(0);
 
-  const [progress] = useState(48);
+  useEffect(() => {
+    async function loadBooks() {
+      const res = await fetch('/data/books.json', { cache: 'no-store' });
+      const data: Book[] = await res.json();
+
+      const current = data.find((b) => b.status === 'reading') || null;
+
+      setReadingBook(current);
+      setProgress(current?.progress ?? 0);
+    }
+
+    loadBooks();
+  }, []);
 
   return (
     <main className="flex items-center justify-center min-h-screen p-6">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
         className="backdrop-blur-lg bg-white/10 shadow-2xl rounded-xl p-8 max-w-5xl w-full mt-18 flex flex-col md:flex-row gap-8"
       >
         {readingBook ? (
           <>
             <div className="flex-shrink-0 shadow-2xs w-full md:w-1/3">
-              <Image
-                src={readingBook.coverImage}
-                alt={readingBook.title}
-                width={300}
-                height={450}
-                className="shadow-md"
-                priority
-              />
+              {readingBook.coverImage && (
+                <Image
+                  src={readingBook.coverImage}
+                  alt={readingBook.title}
+                  width={300}
+                  height={450}
+                  className="shadow-md"
+                  priority
+                />
+              )}
             </div>
 
             <div className="flex flex-col justify-between w-full">
