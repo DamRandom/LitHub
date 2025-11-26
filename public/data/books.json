@@ -10,7 +10,7 @@
     "status": "reading",
     "coverImage": "/images/books/SilenceandShadow.jpg",
     "dateStarted": "2025-05-02",
-    "dateFinished": null,
+    "dateFinished": null, 
     "rating": null,
     "language": "en",
     "tags": ["fantasy", "young adult", "romance", "mystery", "magic", "fiction", "young adult fantasy"],
@@ -19,5 +19,27 @@
     "isbn": "9781250755841",
     "publisher": "Farrar, Straus and Giroux (BYR)",
     "notesCount": 0
-  }
+  },
+  {
+  "id": 3,
+  "title": "Los Crímenes de Steamfield",
+  "author": "Alberto Rey",
+  "sagaId": null,
+  "pages": 192,
+  "format": "physical",
+  "description": "La ciudad de Steamfield es testigo de dos acontecimientos sin precedentes para esta tranquila comunidad: la sucesión de una serie de muertes sin explicación aparente y la aparición de una oscura y densa niebla que se extiende por toda la ciudad. En medio de esta situación, el joven Andrew Anderson recibe una oportunidad soñada que, sin pretenderlo, le empujará hacia una emocionante búsqueda para esclarecer estos hechos. Por suerte, contará con dos nuevos amigos que le acompañarán en esta aventura.",
+  "status": "pending",
+  "coverImage": "/images/books/LosCrimenesDeSteamfield.jpg",
+  "dateStarted": null,
+  "dateFinished": null,
+  "rating": null,
+  "language": "es",
+  "tags": ["mystery", "adventure", "fiction"],
+  "favorite": false,
+  "progress": 0,
+  "isbn": "9788418047374",
+  "publisher": "Naulibres",
+  "notesCount": 0
+}
+
 ]
