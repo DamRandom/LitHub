@@ -22,7 +22,7 @@ export default function BooksToReadLater() {
       const data: Book[] = await res.json();
 
       setBooks(
-        data.filter((b) => b.status === 'pending' && Boolean(b.coverImage))
+        data.filter((b) => b.status === 'unread' && Boolean(b.coverImage))
       );
     }
 
