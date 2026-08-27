@@ -1,17 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Outfit } from "next/font/google";
 import "../styles/globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { AppProvider } from "@/lib/context";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -22,7 +12,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "LitHub - Your Personal Book Manager",
   description:
-    "LitHub helps you track, manage, and explore your book collection with ease.",
+    "LitHub helps you track, manage, and explore your book collection with ease. Add books from local files, track reading progress, take notes, save quotes, and view beautiful reading statistics.",
 };
 
 export default function RootLayout({
@@ -32,10 +22,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased`}
-      >
-        <div>{children}</div>
+      <body className={`${outfit.variable} antialiased`}>
+        <AppProvider>
+          {children}
+        </AppProvider>
       </body>
     </html>
   );
