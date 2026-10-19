@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
-/* Base color variables */
+/* Base color variables & design tokens */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #14171a;
+  --card-bg: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.07);
+  --card-ring: rgba(0, 0, 0, 0.03);
 }
 
 /* Theme setup */
@@ -14,25 +17,107 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Dark mode styles */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
 
 /* General body styles */
 body {
-  background: var(--background);
+  background-color: #ffffff;
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: "liga" on, "kern" on;
+  position: relative;
+  min-height: 100vh;
 }
 
-/* "Shake" animation */
+/* Clean white canvas with barely-there ambient color hints */
+.bg-ambient-canvas {
+  background-color: #ffffff;
+  background-image: 
+    radial-gradient(ellipse at 12% 8%, rgba(245, 158, 11, 0.04) 0%, transparent 38%),
+    radial-gradient(ellipse at 88% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 90%, rgba(16, 185, 129, 0.025) 0%, transparent 45%);
+  background-size: 100% 100%;
+}
+
+/* Clean white cards with crisp borders and depth shadows */
+.lithub-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 8px 24px -6px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 1) inset;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lithub-card:hover {
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 16px 40px -8px rgba(0, 0, 0, 0.09),
+    0 1px 0 rgba(255, 255, 255, 1) inset;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Realistic tactile book cover presentation */
+.book-spine-effect {
+  position: relative;
+  border-radius: 6px 12px 12px 6px;
+  box-shadow: 
+    inset 4px 0 8px -1px rgba(0, 0, 0, 0.28),
+    inset -1px 0 3px rgba(255, 255, 255, 0.2),
+    0 8px 20px -4px rgba(0, 0, 0, 0.16),
+    0 3px 6px -2px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.book-spine-effect:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    inset 4px 0 8px -1px rgba(0, 0, 0, 0.32),
+    inset -1px 0 3px rgba(255, 255, 255, 0.25),
+    0 18px 32px -8px rgba(0, 0, 0, 0.22),
+    0 6px 12px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Spine crease simulation overlay */
+.book-spine-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 12px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.18) 0%, rgba(255,255,255,0.12) 40%, rgba(0,0,0,0.08) 80%, transparent 100%);
+  pointer-events: none;
+  z-index: 5;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.book-spine-sm::before {
+  width: 5px;
+}
+
+/* Ultra-sleek custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.35);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* Animations */
 @keyframes shake {
   0% { transform: rotate(0deg); }
   25% { transform: rotate(-5deg); }
@@ -41,8 +126,28 @@ body {
   100% { transform: rotate(0deg); }
 }
 
+@keyframes subtleFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 .animate-shake {
   animation: shake 0.5s ease-in-out;
+}
+
+.animate-float {
+  animation: subtleFloat 4s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.5s infinite;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -55,7 +160,7 @@ body {
 
 @layer utilities {
   .animate-fadeIn {
-    animation: fadeIn 0.12s ease-out;
+    animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-4px); }

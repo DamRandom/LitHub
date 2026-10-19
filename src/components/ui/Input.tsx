@@ -31,7 +31,7 @@ export default function Input({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full rounded-lg bg-white/10 backdrop-blur-xl px-4 py-2 text-sm text-[#2e2d2de5] placeholder-[#a9a9a9] shadow-md focus:outline-none focus:ring-2 focus:ring-[#fcfcfc54] ${className}`}
+        className={`w-full rounded-xl bg-white border border-neutral-300 px-3.5 py-2 text-sm text-neutral-800 placeholder-neutral-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-neutral-400 focus:border-neutral-400 transition-all ${className}`}
       />
     </div>
   )

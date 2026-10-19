@@ -41,7 +41,7 @@ export default function NotesList({ bookId }: Props) {
         <textarea
           value={newText}
           onChange={(e) => setNewText(e.target.value)}
-          placeholder="Escribe tu nota..."
+          placeholder="Write your note..."
           rows={3}
           className="w-full text-sm text-gray-800 bg-transparent resize-none focus:outline-none placeholder:text-gray-400"
         />
@@ -50,7 +50,7 @@ export default function NotesList({ bookId }: Props) {
             type="number"
             value={newPage}
             onChange={(e) => setNewPage(e.target.value)}
-            placeholder="Página (opcional)"
+            placeholder="Page (optional)"
             className="text-xs text-gray-600 bg-transparent focus:outline-none w-32 placeholder:text-gray-400"
           />
           <button
@@ -59,7 +59,7 @@ export default function NotesList({ bookId }: Props) {
             className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition"
           >
             <Plus size={12} />
-            Añadir nota
+            Add note
           </button>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function NotesList({ bookId }: Props) {
       {notes.length === 0 ? (
         <div className="text-center py-6">
           <p className="text-2xl mb-2">📝</p>
-          <p className="text-sm text-gray-500">No hay notas todavía</p>
+          <p className="text-sm text-gray-500">No notes yet</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -85,10 +85,10 @@ export default function NotesList({ bookId }: Props) {
                   />
                   <div className="flex gap-2">
                     <button onClick={() => saveEdit(note.id)} className="flex items-center gap-1 text-xs bg-gray-900 text-white px-2.5 py-1.5 rounded-lg">
-                      <Check size={12} /> Guardar
+                      <Check size={12} /> Save
                     </button>
                     <button onClick={() => setEditId(null)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-                      <X size={12} /> Cancelar
+                      <X size={12} /> Cancel
                     </button>
                   </div>
                 </div>
@@ -99,7 +99,7 @@ export default function NotesList({ bookId }: Props) {
                     <div className="flex items-center gap-2">
                       {note.page && <span className="text-xs text-gray-400">p. {note.page}</span>}
                       <span className="text-xs text-gray-300">
-                        {new Date(note.updatedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                        {new Date(note.updatedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">

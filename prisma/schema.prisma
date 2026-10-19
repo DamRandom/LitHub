@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./lithub.db"
+}
+
+model User {
+  usuario       String            @id
+  nombre        String
+  apellido      String
+  passwordHash  String
+  edad          Int
+  sexo          String            @default("Masculino")
+  rol           String            @default("usuario")
+  bio           String?           @default("")
+  avatar        String?           @default("")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  collections   Collection[]
+  books         Book[]
+  quotes        Quote[]
+  notes         Note[]
+  sessions      ReadingSession[]
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @default("")
+  usuario     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
+  books       Book[]
+}
+
+model Book {
+  id           String            @id @default(cuid())
+  title        String
+  author       String
+  sagaId       String?
+  pages        Int               @default(0)
+  format       String            @default("physical")
+  description  String?           @default("")
+  status       String            @default("unread") // unread, reading, finished
+  coverImage   String?           @default("")
+  fileUrl      String?           @default("")
+  dateStarted  String?
+  dateFinished String?
+  rating       Int?              @default(0)
+  language     String            @default("es")
+  tags         String            @default("[]") // JSON stringified array of tags
+  favorite     Boolean           @default(false)
+  progress     Int               @default(0)
+  isbn         String?           @default("")
+  publisher    String?           @default("")
+  usuario      String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user         User              @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
+  collection   Collection?       @relation(fields: [sagaId], references: [id], onDelete: SetNull)
+  quotes       Quote[]
+  notes        Note[]
+  sessions     ReadingSession[]
+}
+
+model Quote {
+  id        String   @id @default(cuid())
+  bookId    String
+  text      String
+  page      Int?
+  favorite  Boolean  @default(false)
+  usuario   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  bookId    String
+  content   String
+  page      Int?
+  chapter   String?
+  usuario   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model ReadingSession {
+  id              String   @id @default(cuid())
+  bookId          String
+  pagesRead       Int      @default(0)
+  durationMinutes Int      @default(0)
+  date            String
+  usuario         String
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}

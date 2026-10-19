@@ -18,8 +18,8 @@ export default function SearchInput({
   return (
     <div className="relative group">
       <Search
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-gray-700 transition-colors"
-        size={15}
+        className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-neutral-700 transition-colors"
+        size={14}
       />
 
       <input
@@ -28,12 +28,12 @@ export default function SearchInput({
         placeholder={placeholder}
         aria-label={placeholder}
         className="
-          pl-9 pr-3 py-1.5 text-xs
-          border border-gray-200 rounded-md
-          bg-white/60 backdrop-blur
-          focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300
-          text-gray-700 placeholder-gray-400
-          shadow-sm
+          pl-8.5 pr-3 py-1.5 text-xs font-medium
+          border border-neutral-200/90 rounded-xl
+          bg-white
+          focus:outline-none focus:ring-2 focus:ring-neutral-400 focus:border-neutral-400
+          text-neutral-800 placeholder-neutral-400
+          shadow-2xs
           transition-all
           w-44
         "

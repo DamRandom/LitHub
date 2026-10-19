@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "../styles/globals.css";
 import { AppProvider } from "@/lib/context";
+import { AuthProvider } from "@/lib/auth-context";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -22,10 +23,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${outfit.variable} antialiased`}>
-        <AppProvider>
-          {children}
-        </AppProvider>
+      <body className={`${outfit.variable} antialiased bg-ambient-canvas min-h-screen selection:bg-amber-200 selection:text-amber-950`}>
+        <AuthProvider>
+          <AppProvider>
+            {children}
+          </AppProvider>
+        </AuthProvider>
       </body>
     </html>
   );

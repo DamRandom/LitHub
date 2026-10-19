@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Star, BookOpen, FileText, Heart, Pencil, Trash2, ExternalLink } from 'lucide-react'
+import { X, Star, BookOpen, Heart, Pencil, Trash2 } from 'lucide-react'
 import { useApp } from '@/lib/context'
 import { Book } from '@/lib/store'
 import NotesList from './NotesList'
@@ -15,10 +15,10 @@ interface Props {
 }
 
 const STATUS_LABELS: Record<Book['status'], string> = {
-  reading: 'Leyendo',
-  finished: 'Terminado',
-  unread: 'Por leer',
-  abandoned: 'Abandonado',
+  reading: 'Reading',
+  finished: 'Finished',
+  unread: 'To Read',
+  abandoned: 'Abandoned',
 }
 
 const STATUS_COLORS: Record<Book['status'], string> = {
@@ -31,7 +31,7 @@ const STATUS_COLORS: Record<Book['status'], string> = {
 type Tab = 'info' | 'notes' | 'quotes' | 'sessions'
 
 export default function BookDetailModal({ book, onClose }: Props) {
-  const { updateBook, deleteBook, data } = useApp()
+  const { updateBook, deleteBook, data, openReader } = useApp()
   const [activeTab, setActiveTab] = useState<Tab>('info')
   const [editingProgress, setEditingProgress] = useState(false)
   const [progress, setProgress] = useState(book.progress)
@@ -70,28 +70,28 @@ export default function BookDetailModal({ book, onClose }: Props) {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'info', label: 'Info' },
-    { key: 'notes', label: 'Notas', count: notes.length },
-    { key: 'quotes', label: 'Frases', count: quotes.length },
-    { key: 'sessions', label: 'Sesiones' },
+    { key: 'notes', label: 'Notes', count: notes.length },
+    { key: 'quotes', label: 'Quotes', count: quotes.length },
+    { key: 'sessions', label: 'Sessions' },
   ]
 
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+        className="fixed inset-0 bg-neutral-950/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-fadeIn"
         onClick={onClose}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-neutral-200/90 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-black/5"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex gap-5 p-6 pb-4 border-b border-gray-100">
-            <div className="flex-shrink-0 w-24 h-36 rounded-lg overflow-hidden bg-gray-100 shadow-md">
+          <div className="flex gap-5 p-6 pb-5 border-b border-neutral-100 bg-neutral-50/40">
+            <div className="book-spine-effect flex-shrink-0 w-24 h-36 rounded-lg overflow-hidden bg-neutral-100 shadow-md">
               {book.coverImage ? (
                 book.coverImage.startsWith('data:') ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -108,10 +108,12 @@ export default function BookDetailModal({ book, onClose }: Props) {
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-gray-900 leading-tight">{book.title}</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">por {book.author}</p>
+                  <h2 className="text-xl font-bold text-neutral-900 leading-tight tracking-tight">{book.title}</h2>
+                  <p className="text-xs text-neutral-500 mt-0.5 font-medium">by <span className="text-neutral-800 font-semibold">{book.author}</span></p>
                   {collection && (
-                    <p className="text-xs text-gray-400 mt-0.5">{collection.name}</p>
+                    <span className="inline-block text-[10px] font-semibold bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full mt-1.5 border border-neutral-200/60">
+                      {collection.name}
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -188,34 +190,50 @@ export default function BookDetailModal({ book, onClose }: Props) {
                     <button
                       key={star}
                       onClick={() => updateBook(book.id, { rating: star })}
-                      className={`transition ${(book.rating || 0) >= star ? 'text-amber-400' : 'text-gray-200 hover:text-amber-300'}`}
+                      className={`transition ${(book.rating || 0) >= star ? 'text-neutral-900' : 'text-neutral-200 hover:text-neutral-400'}`}
                     >
                       <Star size={16} fill="currentColor" />
                     </button>
                   ))}
                   <span className="text-xs text-gray-400 ml-1">
-                    {book.rating ? `${book.rating}/5` : 'Sin valorar'}
+                    {book.rating ? `${book.rating}/5` : 'Not rated'}
                   </span>
                 </div>
               )}
+
+              {/* Action: Open Reader */}
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    onClose()
+                    openReader(book)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <BookOpen size={14} />
+                  <span>{book.progress > 0 ? 'Continuar leyendo' : 'Leer libro'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-gray-100 px-6">
+          <div className="flex border-b border-neutral-100 px-6 gap-2 pt-2 bg-neutral-50/20">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold border-b-2 transition-all -mb-px cursor-pointer ${
                   activeTab === tab.key
-                    ? 'border-gray-900 text-gray-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-neutral-900 text-neutral-900'
+                    : 'border-transparent text-neutral-400 hover:text-neutral-700'
                 }`}
               >
                 {tab.label}
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span className="bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                    activeTab === tab.key ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-500'
+                  }`}>
                     {tab.count}
                   </span>
                 )}
@@ -229,7 +247,7 @@ export default function BookDetailModal({ book, onClose }: Props) {
               <div className="space-y-4">
                 {book.description && (
                   <div>
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Sinopsis</h3>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Synopsis</h3>
                     <p className="text-sm text-gray-700 leading-relaxed">{book.description}</p>
                   </div>
                 )}
@@ -237,31 +255,31 @@ export default function BookDetailModal({ book, onClose }: Props) {
                 <div className="grid grid-cols-2 gap-3">
                   {book.pages > 0 && (
                     <div className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-500">Páginas</p>
+                      <p className="text-xs text-gray-500">Pages</p>
                       <p className="font-semibold text-gray-900">{book.pages}</p>
                     </div>
                   )}
                   {book.format && (
                     <div className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-500">Formato</p>
+                      <p className="text-xs text-gray-500">Format</p>
                       <p className="font-semibold text-gray-900 capitalize">{book.format}</p>
                     </div>
                   )}
                   {book.dateStarted && (
                     <div className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-500">Empezado</p>
+                      <p className="text-xs text-gray-500">Started</p>
                       <p className="font-semibold text-gray-900">{book.dateStarted}</p>
                     </div>
                   )}
                   {book.dateFinished && (
                     <div className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-500">Terminado</p>
+                      <p className="text-xs text-gray-500">Finished</p>
                       <p className="font-semibold text-gray-900">{book.dateFinished}</p>
                     </div>
                   )}
                   {book.publisher && (
                     <div className="bg-gray-50 rounded-xl p-3 col-span-2">
-                      <p className="text-xs text-gray-500">Editorial</p>
+                      <p className="text-xs text-gray-500">Publisher</p>
                       <p className="font-semibold text-gray-900">{book.publisher}</p>
                     </div>
                   )}
@@ -275,7 +293,7 @@ export default function BookDetailModal({ book, onClose }: Props) {
 
                 {book.tags && book.tags.length > 0 && (
                   <div>
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Etiquetas</h3>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Tags</h3>
                     <div className="flex flex-wrap gap-1.5">
                       {book.tags.map((tag) => (
                         <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
@@ -286,19 +304,28 @@ export default function BookDetailModal({ book, onClose }: Props) {
                   </div>
                 )}
 
-                {/* Open file if digital */}
-                {book.filePath && (
-                  <a
-                    href={book.filePath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition w-fit"
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-900">
+                      {book.fileUrl || book.filePath ? `Libro digital (${book.format?.toUpperCase() || 'EBOOK'})` : 'Sin archivo adjunto'}
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      {book.fileUrl || book.filePath
+                        ? 'Puedes leer este libro en la pantalla completa y guardar tu progreso.'
+                        : 'Abre el lector para seleccionar y subir el archivo .epub o .pdf.'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      onClose()
+                      openReader(book)
+                    }}
+                    className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition"
                   >
-                    {book.format === 'pdf' ? <FileText size={16} /> : <BookOpen size={16} />}
-                    Abrir {book.format?.toUpperCase()}
-                    <ExternalLink size={14} />
-                  </a>
-                )}
+                    <BookOpen size={14} />
+                    <span>Abrir lector</span>
+                  </button>
+                </div>
 
                 {/* Delete */}
                 <div className="pt-4 border-t border-gray-100">
@@ -308,22 +335,22 @@ export default function BookDetailModal({ book, onClose }: Props) {
                       className="flex items-center gap-1.5 text-red-500 hover:text-red-700 text-sm transition"
                     >
                       <Trash2 size={14} />
-                      Eliminar libro
+                      Delete book
                     </button>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <span className="text-sm text-red-600 font-medium">¿Estás seguro?</span>
+                      <span className="text-sm text-red-600 font-medium">Are you sure?</span>
                       <button
                         onClick={handleDelete}
                         className="bg-red-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-red-600 transition"
                       >
-                        Eliminar
+                        Delete
                       </button>
                       <button
                         onClick={() => setConfirmDelete(false)}
                         className="text-xs text-gray-500 hover:text-gray-700"
                       >
-                        Cancelar
+                        Cancel
                       </button>
                     </div>
                   )}

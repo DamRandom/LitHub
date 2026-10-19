@@ -26,22 +26,22 @@ export default function SortSelect({ value, onChange, options }: SortSelectProps
       <div
         className="
           flex items-center justify-between
-          text-xs text-gray-700
-          bg-white/60 backdrop-blur
-          border border-gray-200 rounded-md
+          text-xs font-semibold text-neutral-700
+          bg-white
+          border border-neutral-200/90 rounded-xl
           px-3 py-1.5
-          shadow-sm
+          shadow-2xs
           cursor-pointer select-none
           transition-all
-          hover:bg-white
-          focus:outline-none focus:ring-2 focus:ring-gray-200
+          hover:bg-neutral-50 hover:border-neutral-300
+          focus:outline-none focus:ring-2 focus:ring-neutral-400
           w-32
         "
       >
         <span>{options.find((o) => o.value === value)?.label}</span>
         <ChevronDown
-          size={14}
-          className={`transition-transform text-gray-500 ${
+          size={13}
+          className={`transition-transform text-neutral-500 ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -51,13 +51,13 @@ export default function SortSelect({ value, onChange, options }: SortSelectProps
       {open && (
         <div
           className="
-            absolute left-0 mt-1 w-full
-            bg-white/80 backdrop-blur
-            border border-gray-200 rounded-md
+            absolute left-0 mt-1.5 w-full
+            bg-white
+            border border-neutral-200/90 rounded-xl
             shadow-lg
             overflow-hidden
             animate-fadeIn
-            z-20
+            z-30 p-1
           "
         >
           {options.map((opt) => {
@@ -66,12 +66,12 @@ export default function SortSelect({ value, onChange, options }: SortSelectProps
               <div
                 key={opt.value}
                 className={`
-                  text-xs px-3 py-2 cursor-pointer
-                  transition-colors
+                  text-xs px-2.5 py-1.5 cursor-pointer rounded-lg
+                  transition-colors font-medium
                   ${
                     active
-                      ? "bg-gray-100 text-gray-800 font-medium"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                      ? "bg-neutral-900 text-white font-semibold"
+                      : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
                   }
                 `}
                 onMouseDown={() => onChange(opt.value)}

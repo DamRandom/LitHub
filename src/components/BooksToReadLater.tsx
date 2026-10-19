@@ -1,135 +1,233 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Plus, ChevronRight, X } from 'lucide-react';
-
-interface Book {
-  id: number;
-  title: string;
-  coverImage: string | null;
-  status: string;
-}
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { motion } from 'framer-motion'
+import { Plus, ChevronRight, X, BookOpen, Play } from 'lucide-react'
+import { useApp } from '@/lib/context'
+import AddBookModal from './AddBookModal'
+import BookDetailModal from './BookDetailModal'
+import { Book } from '@/lib/store'
 
 export default function BooksToReadLater() {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [open, setOpen] = useState(false);
+  const { data, openReader } = useApp()
+  const [open, setOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null)
+
+  // Books that are unread, or added as reading but haven't been opened on the website yet
+  const pendingBooks = data.books.filter((b) => {
+    if (b.status === 'finished') return false
+    if (b.status === 'reading' && (b.lastOpenedAt || b.progress > 0)) return false
+    return true
+  })
 
   useEffect(() => {
-    async function loadBooks() {
-      const res = await fetch('/data/books.json', { cache: 'no-store' });
-      const data: Book[] = await res.json();
+    document.body.style.overflow = open ? 'hidden' : ''
+  }, [open])
 
-      setBooks(
-        data.filter((b) => b.status === 'unread' && Boolean(b.coverImage))
-      );
-    }
-
-    loadBooks();
-  }, []);
-
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-  }, [open]);
-
-  const closeModal = () => setOpen(false);
+  const closeModal = () => setOpen(false)
 
   return (
-    <section className="py-10 px-4 sm:px-6 max-w-4xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="space-y-6 relative"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold text-gray-900">To Read Later</h2>
-          <button className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-full text-sm font-medium transition">
-            <Plus size={18} />
-            Add New
-          </button>
-        </div>
-
-        <div className="relative">
-          <div className="flex gap-4 overflow-x-auto no-scrollbar py-1 pr-8">
-            {books.map((book) => (
-              <div
-                key={book.id}
-                className="relative flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] overflow-hidden shadow-[0_4px_10px_rgba(0,0,0,0.25)] transition-shadow duration-300"
-              >
-                {book.coverImage && (
-                  <Image
-                    src={book.coverImage}
-                    alt={book.title}
-                    fill
-                    sizes="200px"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                )}
-                <div className="absolute inset-0 bg-black/5 hover:bg-black/15 transition" />
+    <>
+      <section id="want-to-read-section" className="py-10 px-4 sm:px-6 max-w-5xl mx-auto w-full">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="space-y-6 relative"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">Want to Read</h2>
+                <span className="text-xs font-semibold bg-neutral-900/5 text-neutral-700 px-2.5 py-0.5 rounded-full border border-neutral-200/60">
+                  {pendingBooks.length}
+                </span>
               </div>
-            ))}
+              <p className="text-xs text-neutral-500 mt-1 font-normal">
+                Libros pendientes en tu lista de lectura
+              </p>
+            </div>
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Añadir libro</span>
+            </button>
           </div>
 
-          <div className="pointer-events-none absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-white/95 via-white/60 to-transparent" />
-
-          <button
-            onClick={() => setOpen(true)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-900 text-white hover:bg-gray-700 p-2 rounded-full shadow-md transition z-10"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        {open && (
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={closeModal}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[85vh] p-6 relative overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
+          {pendingBooks.length === 0 ? (
+            <div className="lithub-card rounded-3xl p-10 sm:p-12 text-center relative overflow-hidden">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center justify-center mx-auto mb-3 shadow-2xs">
+                <BookOpen size={24} className="stroke-[1.75]" />
+              </div>
+              <h3 className="text-base font-bold text-neutral-900">No hay libros pendientes</h3>
+              <p className="text-xs text-neutral-500 max-w-sm mx-auto mt-1.5 mb-5 leading-relaxed">
+                Añade los libros físicos o digitales que planeas leer para organizar tu lista de espera y medir tus progresos.
+              </p>
               <button
-                onClick={closeModal}
-                className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 transition"
+                onClick={() => setAddOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-xl text-xs font-semibold hover:bg-neutral-800 transition shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
-                <X size={22} />
+                <Plus size={15} />
+                <span>Añadir a lista</span>
               </button>
-
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                All Pending Books
-              </h3>
-
-              <div className="overflow-y-auto pr-2 max-h-[70vh]">
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                  {books.map((book) => (
-                    <div
-                      key={book.id}
-                      className="relative w-full aspect-[2/3] overflow-hidden shadow-[0_4px_10px_rgba(0,0,0,0.25)] transition-shadow duration-300 hover:shadow-[0_6px_14px_rgba(0,0,0,0.3)]"
-                    >
-                      {book.coverImage && (
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="flex gap-4 overflow-x-auto no-scrollbar py-3 px-1 pr-10">
+                {pendingBooks.map((book) => (
+                  <div
+                    key={book.id}
+                    className="book-spine-effect relative flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] overflow-hidden bg-neutral-100 cursor-pointer group"
+                  >
+                    <div onClick={() => setSelectedBook(book)} className="w-full h-full">
+                      {book.coverImage ? (
                         <Image
                           src={book.coverImage}
                           alt={book.title}
                           fill
-                          sizes="150px"
-                          className="object-cover transition-transform duration-300 hover:scale-105"
+                          sizes="200px"
+                          className="object-cover"
                         />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-neutral-100 to-neutral-200">
+                          <BookOpen size={24} className="text-neutral-400 mb-1 stroke-[1.5]" />
+                          <span className="text-[10px] font-semibold text-neutral-700 line-clamp-2">{book.title}</span>
+                        </div>
                       )}
-                      <div className="absolute inset-0 bg-black/5 hover:bg-black/15 transition" />
                     </div>
-                  ))}
-                </div>
+
+                    {/* Quick action overlay */}
+                    <div className="absolute inset-0 bg-neutral-950/60 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-2.5 z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openReader(book)
+                        }}
+                        className="w-full py-1.5 px-2 bg-white text-neutral-900 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 hover:bg-neutral-100 transition hover:scale-[1.02]"
+                        title="Comenzar a leer este libro"
+                      >
+                        <Play size={12} fill="currentColor" />
+                        <span>Leer</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedBook(book)
+                        }}
+                        className="w-full py-1.5 px-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[11px] font-medium border border-white/20 transition"
+                      >
+                        Detalles
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </motion.div>
-          </div>
-        )}
-      </motion.div>
-    </section>
-  );
+
+              {pendingBooks.length > 4 && (
+                <>
+                  <div className="pointer-events-none absolute top-0 right-0 h-full w-24 bg-gradient-to-l from-white via-white/80 to-transparent" />
+                  <button
+                    onClick={() => setOpen(true)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-neutral-900 text-white hover:bg-neutral-800 p-2.5 rounded-full shadow-lg transition-transform hover:scale-105 z-10 cursor-pointer"
+                    aria-label="Ver todos los libros pendientes"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {open && (
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={closeModal}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-white rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)] border border-neutral-200/90 max-w-5xl w-full max-h-[85vh] p-7 relative overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={closeModal}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+
+                <div className="flex items-center gap-3 mb-7">
+                  <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
+                    All books to read
+                  </h3>
+                  <span className="text-[11px] font-bold bg-neutral-900 text-white px-2.5 py-0.5 rounded-full">
+                    {pendingBooks.length}
+                  </span>
+                </div>
+
+                <div className="overflow-y-auto pr-2 max-h-[70vh] no-scrollbar">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {pendingBooks.map((book) => (
+                      <div
+                        key={book.id}
+                        className="group relative flex flex-col"
+                      >
+                        <div
+                          onClick={() => {
+                            closeModal()
+                            setSelectedBook(book)
+                          }}
+                          className="relative w-full aspect-[2/3] overflow-hidden rounded-xl shadow-md cursor-pointer bg-neutral-100 group-hover:shadow-lg transition-all duration-200"
+                        >
+                          {book.coverImage ? (
+                            <Image
+                              src={book.coverImage}
+                              alt={book.title}
+                              fill
+                              sizes="150px"
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br from-neutral-100 to-neutral-200">
+                              <BookOpen size={22} className="text-neutral-400 mb-1 stroke-[1.5]" />
+                              <span className="text-[10px] font-semibold text-neutral-700 line-clamp-2">{book.title}</span>
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                closeModal()
+                                openReader(book)
+                              }}
+                              className="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-white text-neutral-900 rounded-xl text-xs font-bold shadow-lg transition transform translate-y-1 group-hover:translate-y-0 hover:scale-[1.03]"
+                            >
+                              Leer ahora
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs font-bold text-neutral-900 mt-1.5 truncate">{book.title}</p>
+                        <p className="text-[11px] text-neutral-500 truncate">{book.author}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </motion.div>
+      </section>
+
+      <AddBookModal open={addOpen} onClose={() => setAddOpen(false)} />
+      {selectedBook && (
+        <BookDetailModal book={selectedBook} onClose={() => setSelectedBook(null)} />
+      )}
+    </>
+  )
 }

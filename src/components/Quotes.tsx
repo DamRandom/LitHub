@@ -24,44 +24,46 @@ export default function Quotes() {
     <section className="py-6 px-4 max-w-4xl mx-auto space-y-6">
        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Tus Frases</h2>
-          <p className="text-gray-500 text-sm mt-1">Colección de tus fragmentos favoritos</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">Your Quotes</h2>
+          <p className="text-neutral-500 text-xs mt-0.5">Collection of your favorite excerpts & reflections</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5">
           <div className="relative w-full sm:w-64">
-             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
              <input 
                 type="text"
-                placeholder="Buscar frase o libro..."
+                placeholder="Search quote or book..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white border border-gray-200 text-sm rounded-full pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="w-full bg-white border border-neutral-200 text-xs rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-400 focus:bg-white transition-all text-neutral-800 placeholder-neutral-400 shadow-2xs"
              />
           </div>
-          <div className="flex bg-gray-100 rounded-full p-1 w-full sm:w-auto">
+          <div className="flex bg-neutral-100/90 border border-neutral-200/60 rounded-xl p-1 w-full sm:w-auto">
              <button
                 onClick={() => setFilter('all')}
-                className={`flex-1 sm:flex-none text-xs font-medium px-4 py-1.5 rounded-full transition ${filter === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 sm:flex-none text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${filter === 'all' ? 'bg-white shadow-2xs text-neutral-900' : 'text-neutral-500 hover:text-neutral-800'}`}
              >
-                Todas
+                All
              </button>
              <button
                 onClick={() => setFilter('favorites')}
-                className={`flex-1 sm:flex-none flex justify-center items-center gap-1.5 text-xs font-medium px-4 py-1.5 rounded-full transition ${filter === 'favorites' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 sm:flex-none flex justify-center items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${filter === 'favorites' ? 'bg-white shadow-2xs text-neutral-900' : 'text-neutral-500 hover:text-neutral-800'}`}
              >
-                <Heart size={12} fill={filter === 'favorites' ? 'currentColor' : 'none'} className={filter === 'favorites' ? 'text-red-500' : ''} />
-                Favoritas
+                <Heart size={12} fill={filter === 'favorites' ? '#ef4444' : 'none'} className={filter === 'favorites' ? 'text-red-500' : 'text-neutral-400'} />
+                <span>Favorites</span>
              </button>
           </div>
         </div>
        </header>
 
        {quotes.length === 0 ? (
-          <div className="text-center py-20">
-             <div className="text-6xl mb-4 opacity-50">💬</div>
-             <h3 className="text-lg font-medium text-gray-900">No hay frases para mostrar</h3>
-             <p className="text-gray-500 text-sm max-w-sm mx-auto mt-2">Guarda tus citas favoritas desde los detalles de cada libro para verlas aquí.</p>
+          <div className="text-center py-16 bg-neutral-50/60 rounded-3xl border border-dashed border-neutral-200">
+             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center justify-center mx-auto mb-2.5 shadow-2xs text-xl">
+               ✍️
+             </div>
+             <h3 className="text-sm font-bold text-neutral-900">No quotes to display</h3>
+             <p className="text-xs text-neutral-500 max-w-sm mx-auto mt-1 leading-relaxed">Save your favorite passages or quotes directly while reading to revisit them anytime.</p>
           </div>
        ) : (
           <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
@@ -71,35 +73,37 @@ export default function Quotes() {
                    return (
                       <motion.div
                          layout
-                         initial={{ opacity: 0, y: 20 }}
+                         initial={{ opacity: 0, y: 15 }}
                          animate={{ opacity: 1, y: 0 }}
-                         exit={{ opacity: 0, scale: 0.9 }}
-                         transition={{ duration: 0.3, delay: i * 0.05 }}
+                         exit={{ opacity: 0, scale: 0.95 }}
+                         transition={{ duration: 0.3, delay: i * 0.04 }}
                          key={quote.id}
-                         className="break-inside-avoid bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition group relative"
+                         className="break-inside-avoid bg-white hover:bg-neutral-50 border border-neutral-200/80 hover:border-neutral-300 rounded-2xl p-5 shadow-2xs hover:shadow-md transition-all duration-200 group relative"
                       >
                          <button
                            onClick={() => updateQuote(quote.id, { favorite: !quote.favorite })}
-                           className="absolute top-4 right-4 p-1.5 rounded-full bg-gray-50/0 hover:bg-gray-50 transition"
+                           className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-neutral-100 transition-transform active:scale-125 cursor-pointer"
+                           aria-label="Toggle favorite"
                          >
-                           <Heart size={16} fill={quote.favorite ? '#ef4444' : 'none'} className={quote.favorite ? 'text-red-500' : 'text-gray-300 group-hover:text-gray-400'} />
+                           <Heart size={15} fill={quote.favorite ? '#ef4444' : 'none'} className={quote.favorite ? 'text-red-500' : 'text-neutral-300 group-hover:text-neutral-400'} />
                          </button>
-                         <p className="text-gray-800 text-[15px] leading-relaxed italic pr-6">&quot;{quote.text}&quot;</p>
+                         <div className="mb-2 text-amber-500/30 text-3xl font-serif select-none leading-none">&ldquo;</div>
+                         <p className="text-neutral-800 text-[14px] leading-relaxed italic pr-4 font-serif">&quot;{quote.text}&quot;</p>
                          
                          {book && (
-                            <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-3">
-                               <div className="w-8 h-12 flex-shrink-0 bg-gray-100 rounded shadow-sm overflow-hidden relative">
+                            <div className="mt-4 pt-3.5 border-t border-neutral-100 flex items-center gap-3">
+                               <div className="w-8 h-12 flex-shrink-0 bg-neutral-100 rounded-md shadow-2xs overflow-hidden relative border border-neutral-200/60">
                                   {book.coverImage ? (
                                     <Image src={book.coverImage} alt={book.title} fill className="object-cover" />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400"><Book size={12} /></div>
+                                    <div className="w-full h-full flex items-center justify-center text-neutral-400"><Book size={12} /></div>
                                   )}
                                </div>
                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-gray-900 truncate">{book.title}</p>
-                                  <p className="text-[10px] text-gray-500 truncate">{book.author}</p>
-                                  {quote.page && <p className="text-[10px] text-gray-400 mt-0.5">Pág. {quote.page}</p>}
-                               </div>
+                                  <p className="text-xs font-bold text-neutral-900 truncate tracking-tight">{book.title}</p>
+                                  <p className="text-[11px] text-neutral-500 truncate font-medium">{book.author}</p>
+                                  {quote.page && <p className="text-[10px] text-neutral-400 mt-0.5 font-medium">Página {quote.page}</p>}
+                                </div>
                             </div>
                          )}
                       </motion.div>
