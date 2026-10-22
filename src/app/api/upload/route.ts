@@ -4,7 +4,31 @@ import path from 'path'
 import { getSessionUser } from '@/lib/auth-jwt'
 import { prisma } from '@/lib/prisma'
 
+/**
+ * ⚠️  PRODUCTION LIMITATION
+ * Vercel's filesystem is read-only except for /tmp (and /tmp is ephemeral between invocations).
+ * File uploads to disk DO NOT persist on Vercel.
+ *
+ * To support file uploads in production you need an external storage service such as:
+ *   - Vercel Blob (https://vercel.com/docs/storage/vercel-blob)
+ *   - Cloudinary (free tier available)
+ *   - AWS S3 / Cloudflare R2
+ *
+ * Until then, the upload endpoint works locally but is disabled in production.
+ */
 export async function POST(req: Request) {
+  // Block file uploads in production (Vercel read-only filesystem)
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          'File upload to local disk is not supported in production. Configure an external storage provider (e.g., Vercel Blob, Cloudinary) first.',
+      },
+      { status: 501 }
+    )
+  }
+
   try {
     const user = await getSessionUser()
     if (!user) {
@@ -65,3 +89,4 @@ export async function POST(req: Request) {
     )
   }
 }
+

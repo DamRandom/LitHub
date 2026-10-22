@@ -33,6 +33,17 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 .env.local
+!.env.example
+
+# SQLite database files (replaced by Neon PostgreSQL)
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.db.backup
+
+# Uploaded files (Vercel filesystem is ephemeral — use external storage)
+/public/uploads/
 
 # vercel
 .vercel

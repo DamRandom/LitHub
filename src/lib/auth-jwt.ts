@@ -3,7 +3,18 @@ import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'lithub_super_secret_jwt_key_2026_safe'
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[auth] JWT_SECRET environment variable is not set. Refusing to start in production without a secure secret.')
+    }
+    // Development only: warn and use an insecure placeholder
+    console.warn('[auth] WARNING: JWT_SECRET is not set. Using insecure dev placeholder. Set it in .env.local')
+    return 'dev_insecure_placeholder_set_JWT_SECRET_in_env'
+  }
+  return secret
+})()
 export const AUTH_COOKIE_NAME = 'lithub_session_token'
 
 export interface JWTPayload {

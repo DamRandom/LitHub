@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./lithub.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -47,18 +48,20 @@ model Book {
   pages        Int               @default(0)
   format       String            @default("physical")
   description  String?           @default("")
-  status       String            @default("unread") // unread, reading, finished
+  // Reading state (per-user)
+  status       String            @default("unread")  // unread, reading, finished, abandoned
   coverImage   String?           @default("")
   fileUrl      String?           @default("")
   dateStarted  String?
   dateFinished String?
   rating       Int?              @default(0)
   language     String            @default("es")
-  tags         String            @default("[]") // JSON stringified array of tags
+  tags         String            @default("[]")      // JSON stringified array of tags
   favorite     Boolean           @default(false)
   progress     Int               @default(0)
   isbn         String?           @default("")
   publisher    String?           @default("")
+  lastOpenedAt DateTime?
   usuario      String
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
@@ -68,6 +71,10 @@ model Book {
   quotes       Quote[]
   notes        Note[]
   sessions     ReadingSession[]
+
+  @@index([usuario])
+  @@index([status])
+  @@index([usuario, status])
 }
 
 model Quote {
@@ -81,6 +88,9 @@ model Quote {
 
   user      User     @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
   book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([usuario])
+  @@index([bookId])
 }
 
 model Note {
@@ -94,6 +104,9 @@ model Note {
 
   user      User     @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
   book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([usuario])
+  @@index([bookId])
 }
 
 model ReadingSession {
@@ -107,4 +120,7 @@ model ReadingSession {
 
   user            User     @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
   book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([usuario])
+  @@index([bookId])
 }
