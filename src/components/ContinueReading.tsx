@@ -45,12 +45,12 @@ export default function ContinueReading() {
 
   return (
     <>
-      <main className="flex flex-col items-center justify-center p-4 sm:p-6 pt-24 max-w-5xl mx-auto w-full">
+      <main className="flex flex-col items-center justify-center p-3 sm:p-6 pt-20 sm:pt-24 max-w-5xl mx-auto w-full">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="lithub-card rounded-3xl p-7 sm:p-10 w-full flex flex-col md:flex-row gap-8 sm:gap-10 relative overflow-hidden ring-1 ring-black/[0.03]"
+          className="lithub-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 w-full flex flex-col md:flex-row gap-6 sm:gap-10 relative overflow-hidden ring-1 ring-black/[0.03]"
         >
           {/* Extremely subtle ambient accent behind cover */}
           <div className="absolute -top-24 -left-24 w-80 h-80 bg-amber-400/[0.04] rounded-full blur-3xl pointer-events-none" />
@@ -60,7 +60,7 @@ export default function ContinueReading() {
             <>
               {/* Cover */}
               <div className="flex-shrink-0 w-full md:w-1/3 flex justify-center items-center">
-                <div className="book-spine-effect relative w-48 sm:w-56 md:w-full aspect-[2/3] max-w-[270px] overflow-hidden bg-neutral-200">
+                <div className="book-spine-effect relative w-40 sm:w-56 md:w-full aspect-[2/3] max-w-[240px] overflow-hidden bg-neutral-200">
                   {featuredBook.coverImage ? (
                     featuredBook.coverImage.startsWith('data:') ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -150,17 +150,17 @@ export default function ContinueReading() {
                     </p>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-3 mt-6">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 mt-5 sm:mt-6">
                     <button
                       onClick={() => openReader(featuredBook)}
-                      className="bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-semibold px-6 py-3 rounded-2xl shadow-[0_8px_20px_-4px_rgba(0,0,0,0.25)] hover:shadow-[0_12px_24px_-4px_rgba(0,0,0,0.3)] transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                      className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-[0_8px_20px_-4px_rgba(0,0,0,0.25)] hover:shadow-[0_12px_24px_-4px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                     >
-                      <BookOpen size={17} />
+                      <BookOpen size={16} />
                       <span>{featuredBook.progress > 0 ? 'Continuar leyendo' : 'Comenzar lectura'}</span>
                     </button>
                     <button
                       onClick={() => setSelectedBook(featuredBook)}
-                      className="bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 hover:border-neutral-300 text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                      className="bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 hover:border-neutral-300 text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-2xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center"
                     >
                       Ver detalles
                     </button>

@@ -16,7 +16,7 @@ export default function SearchInput({
   placeholder = "Search…",
 }: SearchInputProps) {
   return (
-    <div className="relative group">
+    <div className="relative group w-full sm:w-auto">
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-neutral-700 transition-colors"
         size={14}
@@ -35,7 +35,7 @@ export default function SearchInput({
           text-neutral-800 placeholder-neutral-400
           shadow-2xs
           transition-all
-          w-44
+          w-full sm:w-44
         "
       />
     </div>

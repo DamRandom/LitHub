@@ -21,14 +21,14 @@ export default function Quotes() {
   }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   return (
-    <section className="py-6 px-4 max-w-4xl mx-auto space-y-6">
-       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <section className="py-4 sm:py-6 px-1 sm:px-4 max-w-4xl mx-auto space-y-4 sm:space-y-6">
+       <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">Your Quotes</h2>
           <p className="text-neutral-500 text-xs mt-0.5">Collection of your favorite excerpts & reflections</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
              <input 

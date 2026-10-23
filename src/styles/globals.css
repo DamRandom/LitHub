@@ -18,7 +18,17 @@
 }
 
 
-/* General body styles */
+/* General html & body styles to eliminate horizontal scrolling */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   background-color: #ffffff;
   color: var(--foreground);
@@ -29,6 +39,7 @@ body {
   font-feature-settings: "liga" on, "kern" on;
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Clean white canvas with barely-there ambient color hints */

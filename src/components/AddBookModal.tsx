@@ -267,7 +267,7 @@ export default function AddBookModal({ open, onClose }: Props) {
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-2.5 sm:p-4"
           onClick={handleClose}
         >
           <motion.div
@@ -275,7 +275,7 @@ export default function AddBookModal({ open, onClose }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className={`bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative transition-all ${
+            className={`bg-white rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6 max-h-[92dvh] flex flex-col overflow-hidden relative transition-all ${
               isDragging ? 'ring-4 ring-indigo-500/40 bg-indigo-50/20' : ''
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -447,7 +447,7 @@ export default function AddBookModal({ open, onClose }: Props) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Páginas estimadas</label>
                     <input
@@ -474,7 +474,7 @@ export default function AddBookModal({ open, onClose }: Props) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Colección / Serie</label>
                     <select

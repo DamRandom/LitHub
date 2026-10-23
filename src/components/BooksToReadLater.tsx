@@ -30,41 +30,41 @@ export default function BooksToReadLater() {
 
   return (
     <>
-      <section id="want-to-read-section" className="py-10 px-4 sm:px-6 max-w-5xl mx-auto w-full">
+      <section id="want-to-read-section" className="py-6 sm:py-10 px-3 sm:px-6 max-w-5xl mx-auto w-full">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="space-y-6 relative"
+          className="space-y-4 sm:space-y-6 relative"
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">Want to Read</h2>
-                <span className="text-xs font-semibold bg-neutral-900/5 text-neutral-700 px-2.5 py-0.5 rounded-full border border-neutral-200/60">
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <h2 className="text-xl sm:text-3xl font-bold text-neutral-900 tracking-tight">Want to Read</h2>
+                <span className="text-xs font-semibold bg-neutral-900/5 text-neutral-700 px-2 sm:px-2.5 py-0.5 rounded-full border border-neutral-200/60">
                   {pendingBooks.length}
                 </span>
               </div>
-              <p className="text-xs text-neutral-500 mt-1 font-normal">
+              <p className="text-[11px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 font-normal">
                 Libros pendientes en tu lista de lectura
               </p>
             </div>
             <button
               onClick={() => setAddOpen(true)}
-              className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="flex items-center gap-1 sm:gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <Plus size={16} />
+              <Plus size={15} />
               <span>Añadir libro</span>
             </button>
           </div>
 
           {pendingBooks.length === 0 ? (
-            <div className="lithub-card rounded-3xl p-10 sm:p-12 text-center relative overflow-hidden">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center justify-center mx-auto mb-3 shadow-2xs">
-                <BookOpen size={24} className="stroke-[1.75]" />
+            <div className="lithub-card rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center relative overflow-hidden">
+              <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-2xl bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center justify-center mx-auto mb-3 shadow-2xs">
+                <BookOpen size={22} className="stroke-[1.75]" />
               </div>
-              <h3 className="text-base font-bold text-neutral-900">No hay libros pendientes</h3>
-              <p className="text-xs text-neutral-500 max-w-sm mx-auto mt-1.5 mb-5 leading-relaxed">
+              <h3 className="text-sm sm:text-base font-bold text-neutral-900">No hay libros pendientes</h3>
+              <p className="text-xs text-neutral-500 max-w-sm mx-auto mt-1.5 mb-4 sm:mb-5 leading-relaxed">
                 Añade los libros físicos o digitales que planeas leer para organizar tu lista de espera y medir tus progresos.
               </p>
               <button
@@ -77,11 +77,11 @@ export default function BooksToReadLater() {
             </div>
           ) : (
             <div className="relative">
-              <div className="flex gap-4 overflow-x-auto no-scrollbar py-3 px-1 pr-10">
+              <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-2 sm:py-3 px-1 pr-6 sm:pr-10">
                 {pendingBooks.map((book) => (
                   <div
                     key={book.id}
-                    className="book-spine-effect relative flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] overflow-hidden bg-neutral-100 cursor-pointer group"
+                    className="book-spine-effect relative flex-shrink-0 w-24 sm:w-32 md:w-36 lg:w-40 aspect-[2/3] overflow-hidden bg-neutral-100 cursor-pointer group"
                   >
                     <div onClick={() => setSelectedBook(book)} className="w-full h-full">
                       {book.coverImage ? (
@@ -144,35 +144,35 @@ export default function BooksToReadLater() {
 
           {open && (
             <div
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2.5 sm:p-4"
               onClick={closeModal}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.97, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className="bg-white rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)] border border-neutral-200/90 max-w-5xl w-full max-h-[85vh] p-7 relative overflow-hidden"
+                className="bg-white rounded-2xl sm:rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)] border border-neutral-200/90 max-w-5xl w-full max-h-[92dvh] sm:max-h-[85vh] p-4 sm:p-7 relative overflow-hidden flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
                   onClick={closeModal}
-                  className="absolute top-4 right-4 p-2 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                  className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 p-1.5 sm:p-2 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-all cursor-pointer"
                   aria-label="Close"
                 >
                   <X size={18} />
                 </button>
 
-                <div className="flex items-center gap-3 mb-7">
-                  <h3 className="text-xl font-bold text-neutral-900 tracking-tight">
+                <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-7 shrink-0">
+                  <h3 className="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight">
                     All books to read
                   </h3>
-                  <span className="text-[11px] font-bold bg-neutral-900 text-white px-2.5 py-0.5 rounded-full">
+                  <span className="text-[10px] sm:text-[11px] font-bold bg-neutral-900 text-white px-2 sm:px-2.5 py-0.5 rounded-full">
                     {pendingBooks.length}
                   </span>
                 </div>
 
-                <div className="overflow-y-auto pr-2 max-h-[70vh] no-scrollbar">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="overflow-y-auto pr-1 sm:pr-2 flex-1 min-h-0 no-scrollbar">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                     {pendingBooks.map((book) => (
                       <div
                         key={book.id}

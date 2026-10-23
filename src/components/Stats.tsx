@@ -58,43 +58,43 @@ export default function Stats() {
         </select>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center mb-3 shadow-2xs group-hover:scale-105 transition-transform">
-            <Trophy size={20} className="stroke-[2]" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-3.5 sm:p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
+          <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center mb-2 sm:mb-3 shadow-2xs group-hover:scale-105 transition-transform">
+            <Trophy size={18} className="stroke-[2]" />
           </div>
-          <p className="text-3xl font-extrabold text-neutral-900 tracking-tight mb-1">{stats.booksRead}</p>
-          <p className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Books read</p>
+          <p className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mb-0.5 sm:mb-1">{stats.booksRead}</p>
+          <p className="text-[10px] sm:text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Books read</p>
         </div>
 
-        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 flex items-center justify-center mb-3 shadow-2xs group-hover:scale-105 transition-transform">
-            <BookOpen size={20} className="stroke-[2]" />
+        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-3.5 sm:p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
+          <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 flex items-center justify-center mb-2 sm:mb-3 shadow-2xs group-hover:scale-105 transition-transform">
+            <BookOpen size={18} className="stroke-[2]" />
           </div>
-          <p className="text-3xl font-extrabold text-neutral-900 tracking-tight mb-1">{stats.totalPages}</p>
-          <p className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Pages read</p>
+          <p className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mb-0.5 sm:mb-1">{stats.totalPages}</p>
+          <p className="text-[10px] sm:text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Pages read</p>
         </div>
 
-        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center mb-3 shadow-2xs group-hover:scale-105 transition-transform">
-            <Clock size={20} className="stroke-[2]" />
+        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-3.5 sm:p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
+          <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center mb-2 sm:mb-3 shadow-2xs group-hover:scale-105 transition-transform">
+            <Clock size={18} className="stroke-[2]" />
           </div>
-          <p className="text-3xl font-extrabold text-neutral-900 tracking-tight mb-1">{Math.floor(stats.totalMinutes / 60)}h {stats.totalMinutes % 60}m</p>
-          <p className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Total time</p>
+          <p className="text-xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mb-0.5 sm:mb-1">{Math.floor(stats.totalMinutes / 60)}h {stats.totalMinutes % 60}m</p>
+          <p className="text-[10px] sm:text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Total time</p>
         </div>
 
-        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
-          <div className="w-12 h-12 rounded-2xl bg-violet-500/10 text-violet-600 border border-violet-500/20 flex items-center justify-center mb-3 shadow-2xs group-hover:scale-105 transition-transform">
-            <Calendar size={20} className="stroke-[2]" />
+        <div className="bg-white hover:bg-neutral-50 rounded-2xl p-3.5 sm:p-5 border border-neutral-200/80 hover:border-neutral-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col items-center text-center group">
+          <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-violet-500/10 text-violet-600 border border-violet-500/20 flex items-center justify-center mb-2 sm:mb-3 shadow-2xs group-hover:scale-105 transition-transform">
+            <Calendar size={18} className="stroke-[2]" />
           </div>
-          <p className="text-3xl font-extrabold text-neutral-900 tracking-tight mb-1">
+          <p className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mb-0.5 sm:mb-1">
              {stats.monthlyData.filter(m => m.minutes > 0).length}
           </p>
-          <p className="text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Active months</p>
+          <p className="text-[10px] sm:text-[11px] text-neutral-500 font-semibold uppercase tracking-wider">Active months</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-neutral-200/80 shadow-2xs space-y-5 relative overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-neutral-200/80 shadow-2xs space-y-4 sm:space-y-5 relative overflow-hidden">
          {/* Subtle ambient glow */}
          <div className="pointer-events-none absolute -top-20 -right-20 w-56 h-56 bg-amber-400/5 rounded-full blur-3xl" />
          <div className="flex items-center justify-between relative">

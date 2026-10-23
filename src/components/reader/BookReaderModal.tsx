@@ -17,7 +17,6 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Clock,
   Quote as QuoteIcon,
   FileText,
   Loader2,
@@ -928,16 +927,16 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-md flex items-center justify-center p-0 sm:p-4">
+      <div className="fixed inset-0 z-[120] bg-black/75 backdrop-blur-md flex items-center justify-center p-0 sm:p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.2 }}
-          className={`w-full h-full rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative transition-all duration-300 ${
+          className={`w-full h-[100dvh] sm:h-full rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative transition-all duration-300 ${
             isImmersive
               ? 'max-w-none max-h-none sm:max-h-full sm:rounded-none'
-              : 'max-w-6xl max-h-[100vh] sm:max-h-[94vh]'
+              : 'max-w-6xl max-h-[100dvh] sm:max-h-[94vh]'
           } ${
             theme === 'dark'
               ? 'bg-zinc-900 text-zinc-100'
@@ -949,7 +948,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           {/* Streamlined, Minimal Header */}
           {!isImmersive && (
             <header
-              className={`px-4 sm:px-6 py-2.5 border-b flex items-center justify-between gap-3 z-30 transition-colors ${
+              className={`px-3 sm:px-6 py-2 sm:py-2.5 border-b flex items-center justify-between gap-2 sm:gap-3 z-30 transition-colors shrink-0 ${
                 theme === 'dark'
                   ? 'bg-zinc-950/80 border-zinc-800'
                   : theme === 'sepia'
@@ -958,26 +957,26 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               } backdrop-blur-md`}
             >
               {/* Left: Book info */}
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer text-neutral-500 hover:text-neutral-900"
+                  className="p-1 sm:p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer text-neutral-500 hover:text-neutral-900 shrink-0"
                   title="Cerrar visor (Esc)"
                 >
                   <X size={18} />
                 </button>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold truncate max-w-[150px] sm:max-w-xs md:max-w-md leading-tight">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xs sm:text-sm font-bold truncate max-w-[130px] sm:max-w-xs md:max-w-md leading-tight">
                     {currentBook.title}
                   </h3>
-                  <p className="text-[11px] opacity-60 truncate">
+                  <p className="text-[10px] sm:text-[11px] opacity-60 truncate">
                     {currentBook.author}
                   </p>
                 </div>
               </div>
 
               {/* Center: Discreet Reading Info Pill */}
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200/80 text-[11px] font-medium text-neutral-600">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200/80 text-[11px] font-medium text-neutral-600 shrink-0">
                 <span>Pág. {currentPage} de {totalPages}</span>
                 {timerActive && (
                   <>
@@ -991,12 +990,12 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               </div>
 
               {/* Right: Consolidated Controls (Aa Settings, Notes & Quotes, Immersive Mode) */}
-              <div className="flex items-center gap-2 relative">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative">
                 {/* Aa Settings Popover */}
                 <div className="relative" ref={settingsRef}>
                   <button
                     onClick={() => setSettingsOpen(!settingsOpen)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                    className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
                       settingsOpen
                         ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
                         : 'bg-white hover:bg-neutral-50 text-neutral-800 border-neutral-200/90 hover:border-neutral-300 shadow-2xs'
@@ -1012,7 +1011,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                     >
                       Aa
                     </span>
-                    <span className="text-[11px] font-medium">Ajustes</span>
+                    <span className="text-[11px] font-medium hidden sm:inline">Ajustes</span>
                   </button>
 
                   {/* Aa Settings Dropdown Menu */}
@@ -1023,7 +1022,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.15, ease: 'easeOut' }}
-                        className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl p-4 z-50 space-y-4 text-neutral-800 dark:text-neutral-100 ring-1 ring-black/5"
+                        className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl p-4 z-50 space-y-4 text-neutral-800 dark:text-neutral-100 ring-1 ring-black/5"
                       >
                         {/* Tema */}
                         <div>
@@ -1152,7 +1151,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                 {/* Notes & Quotes Drawer Button */}
                 <button
                   onClick={() => setNotesDrawerOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200/90 hover:border-neutral-300 shadow-2xs transition-all cursor-pointer"
+                  className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200/90 hover:border-neutral-300 shadow-2xs transition-all cursor-pointer"
                   title="Ver notas y citas de este libro"
                 >
                   <QuoteIcon size={13} className="text-neutral-700" />
@@ -1195,7 +1194,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           <main
             ref={mainContainerRef}
             onMouseUp={handleContainerMouseUp}
-            className={`flex-1 relative flex flex-col overflow-hidden select-text transition-colors duration-200 ${
+            className={`flex-1 min-h-0 w-full relative flex flex-col overflow-hidden select-text transition-colors duration-200 ${
               theme === 'dark'
                 ? 'bg-zinc-900 text-zinc-100'
                 : theme === 'sepia'
@@ -1442,7 +1441,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           {/* Streamlined Bottom Bar: Clean Navigation & Progress */}
           {!isImmersive && (
             <footer
-              className={`px-4 sm:px-6 py-2.5 border-t flex items-center justify-between gap-4 z-30 transition-colors ${
+              className={`px-2.5 sm:px-6 py-2 sm:py-2.5 border-t flex items-center justify-between gap-1.5 sm:gap-4 z-30 transition-colors shrink-0 ${
                 theme === 'dark'
                   ? 'bg-zinc-950/80 border-zinc-800'
                   : theme === 'sepia'
@@ -1460,7 +1459,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                   }
                 }}
                 disabled={currentPage <= 1}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer shrink-0"
                 title="Página anterior (←)"
               >
                 <ChevronLeft size={16} />
@@ -1468,9 +1467,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               </button>
 
               {/* Center Scrubber & Quick Page Indicator */}
-              <div className="flex-1 max-w-xl flex items-center gap-3">
+              <div className="flex-1 min-w-0 max-w-xl flex items-center gap-1.5 sm:gap-3">
                 {/* Clickable Quick Jump Page Indicator */}
-                <div className="relative">
+                <div className="relative shrink-0">
                   {jumpInputOpen ? (
                     <form
                       onSubmit={(e) => {
@@ -1491,7 +1490,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                         value={jumpInputVal}
                         onChange={(e) => setJumpInputVal(e.target.value)}
                         onBlur={() => setJumpInputOpen(false)}
-                        className="w-14 text-center py-0.5 px-1 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                        className="w-12 sm:w-14 text-center py-0.5 px-1 rounded-lg border border-neutral-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[11px] sm:text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-neutral-900"
                       />
                     </form>
                   ) : (
@@ -1500,17 +1499,17 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                         setJumpInputVal(String(currentPage))
                         setJumpInputOpen(true)
                       }}
-                      className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 px-2 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition flex items-center gap-1 cursor-pointer shrink-0"
+                      className="text-[11px] sm:text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 px-1.5 sm:px-2 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition flex items-center gap-0.5 sm:gap-1 cursor-pointer shrink-0"
                       title="Haz clic para saltar a una página específica"
                     >
-                      <span>Pág. {currentPage}</span>
-                      <span className="opacity-50">/ {totalPages}</span>
+                      <span>{currentPage}</span>
+                      <span className="opacity-50">/{totalPages}</span>
                     </button>
                   )}
                 </div>
 
                 {/* Slim Progress Slider */}
-                <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 min-w-0 flex items-center gap-1.5 sm:gap-2">
                   <input
                     type="range"
                     min={0}
@@ -1524,9 +1523,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                       jumpToPercentage(val)
                       triggerAutoSave(val, p)
                     }}
-                    className="flex-1 h-1.5 rounded-lg accent-neutral-900 dark:accent-white cursor-pointer"
+                    className="flex-1 min-w-0 h-1.5 rounded-lg accent-neutral-900 dark:accent-white cursor-pointer"
                   />
-                  <span className="text-[11px] font-mono font-bold opacity-60 w-9 text-right shrink-0">
+                  <span className="text-[10px] sm:text-[11px] font-mono font-bold opacity-60 w-7 sm:w-9 text-right shrink-0">
                     {progress}%
                   </span>
                 </div>
@@ -1542,7 +1541,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                   }
                 }}
                 disabled={currentPage >= totalPages}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer shrink-0"
                 title="Página siguiente (→)"
               >
                 <span className="hidden sm:inline">Siguiente</span>

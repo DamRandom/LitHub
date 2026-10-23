@@ -151,8 +151,8 @@ export default function ProfilePage() {
     <div className="min-h-screen w-full flex flex-col justify-between">
       <Navbar />
 
-      <main className="flex-1 w-full pt-24 pb-12 px-4 sm:px-6">
-        <div className="lithub-card rounded-3xl max-w-5xl mx-auto min-h-[70vh] p-6 sm:p-8 space-y-6 ring-1 ring-black/[0.03]">
+      <main className="flex-1 w-full pt-20 sm:pt-24 pb-12 px-3 sm:px-6">
+        <div className="lithub-card rounded-2xl sm:rounded-3xl max-w-5xl mx-auto min-h-[70vh] p-3.5 sm:p-8 space-y-4 sm:space-y-6 ring-1 ring-black/[0.03]">
           {/* Toast */}
           <AnimatePresence>
             {toast && (

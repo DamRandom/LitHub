@@ -36,27 +36,27 @@ export default function DashboardPage() {
       <Navbar />
       {/* Guest Mode Banner */}
       {isGuest && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4 animate-fadeIn">
-          <div className="flex items-center justify-between gap-4 bg-neutral-900/90 backdrop-blur-xl text-white rounded-2xl px-5 py-3.5 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.3)] border border-white/15 ring-1 ring-white/10">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-sm flex-shrink-0">
+        <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-3 sm:px-4 animate-fadeIn">
+          <div className="flex items-center justify-between gap-2.5 sm:gap-4 bg-neutral-900/90 backdrop-blur-xl text-white rounded-2xl p-3 sm:px-5 sm:py-3.5 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.3)] border border-white/15 ring-1 ring-white/10">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xs sm:text-sm flex-shrink-0">
                 ✨
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-semibold leading-none flex items-center gap-2">
+                <p className="text-xs font-semibold leading-none flex items-center gap-1.5 sm:gap-2">
                   <span>Guest mode</span>
-                  <span className="text-[9px] uppercase tracking-wider font-bold bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded">Preview</span>
+                  <span className="text-[8px] sm:text-[9px] uppercase tracking-wider font-bold bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded">Preview</span>
                 </p>
-                <p className="text-[11px] text-white/60 mt-1 truncate">
-                  Your library won&apos;t be saved — create a free account to keep everything.
+                <p className="text-[10px] sm:text-[11px] text-white/60 mt-1 truncate">
+                  Your library won&apos;t be saved — sign up to keep everything.
                 </p>
               </div>
             </div>
             <Link
               href="/"
-              className="flex-shrink-0 bg-white text-neutral-900 hover:bg-neutral-100 hover:scale-[1.02] active:scale-[0.98] px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
+              className="flex-shrink-0 bg-white text-neutral-900 hover:bg-neutral-100 hover:scale-[1.02] active:scale-[0.98] px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[11px] sm:text-xs font-semibold transition-all shadow-sm"
             >
-              Sign up free
+              Sign up
             </Link>
           </div>
         </div>

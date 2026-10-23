@@ -24,7 +24,7 @@ export default function FinishedBooks() {
   }
 
   return (
-    <section className="py-6 px-2 max-w-4xl mx-auto space-y-6">
+    <section className="py-4 sm:py-6 px-1 sm:px-2 max-w-4xl mx-auto space-y-4 sm:space-y-6">
       <header className="flex items-center justify-between">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight flex items-center gap-2.5">
@@ -50,13 +50,13 @@ export default function FinishedBooks() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {finishedBooks.map((book) => (
             <motion.div
               key={book.id}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white hover:bg-neutral-50 rounded-2xl p-4 border border-neutral-200/80 hover:border-neutral-300 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+              className="bg-white hover:bg-neutral-50 rounded-2xl p-3.5 sm:p-4 border border-neutral-200/80 hover:border-neutral-300 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group overflow-hidden"
             >
               <div className="flex gap-3.5">
                 <div

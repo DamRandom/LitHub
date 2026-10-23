@@ -31,6 +31,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
+      if (menuOpen) return
       const currentScroll = window.scrollY
       if (currentScroll <= 0) {
         setVisible(true)
@@ -51,7 +52,7 @@ export default function Navbar() {
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [menuOpen])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -75,19 +76,18 @@ export default function Navbar() {
       <motion.nav
         animate={{
           y: visible ? 0 : -60,
-          height: isMini ? 8 : 64,
+          height: isMini ? 8 : (menuOpen ? 'auto' : 64),
           opacity: 1,
-          borderBottomLeftRadius: isMini ? '8px' : '1rem',
-          borderBottomRightRadius: isMini ? '8px' : '1rem',
+          borderBottomLeftRadius: isMini ? '8px' : '1.25rem',
+          borderBottomRightRadius: isMini ? '8px' : '1.25rem',
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onMouseEnter={() => isMini && setVisible(true)}
         onMouseLeave={() => isMini && setVisible(false)}
-        className="fixed top-0 left-1/2 -translate-x-1/2 z-50 backdrop-blur-2xl bg-white/90 shadow-[0_10px_36px_rgba(0,0,0,0.06)] rounded-b-2xl px-6 max-w-5xl w-full flex justify-between items-center text-neutral-800 select-none overflow-visible border-b border-neutral-200/60 ring-1 ring-black/[0.03]"
-        style={{ width: 'min(92vw, 1080px)' }}
+        className="fixed top-0 left-1/2 -translate-x-1/2 z-50 backdrop-blur-2xl bg-white/95 shadow-[0_10px_36px_rgba(0,0,0,0.08)] rounded-b-2xl sm:rounded-b-3xl px-3.5 sm:px-6 max-w-5xl w-[calc(100%-1.25rem)] sm:w-[min(92vw,1080px)] flex flex-col text-neutral-800 select-none overflow-hidden sm:overflow-visible border-b border-neutral-200/70 ring-1 ring-black/[0.04]"
       >
-        <div className="w-full flex justify-between items-center py-2.5">
-          <Link href={isAuthenticated ? '/dashboard' : '/'} className="w-24 h-8 relative mr-6 flex-shrink-0 transition-transform hover:scale-[1.02] active:scale-[0.98]">
+        <div className="w-full flex justify-between items-center py-2 sm:py-2.5 h-16 shrink-0">
+          <Link href={isAuthenticated ? '/dashboard' : '/'} className="w-22 sm:w-24 h-7 sm:h-8 relative mr-3 sm:mr-6 flex-shrink-0 transition-transform hover:scale-[1.02] active:scale-[0.98]">
             <Image
               src="/logo/lithub.png"
               alt="LitHub Logo"
@@ -262,7 +262,7 @@ export default function Navbar() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden flex flex-col space-y-2 text-gray-700 px-4 pb-4 bg-white/95 rounded-b-2xl shadow-lg border-t border-gray-100 mt-2"
+              className="md:hidden w-full flex flex-col space-y-2 text-gray-700 px-1 pb-4 pt-2 border-t border-neutral-100"
             >
               {currentUser ? (
                 <div className="p-3 bg-gray-50 rounded-xl mb-2 flex items-center justify-between">

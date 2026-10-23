@@ -84,7 +84,7 @@ export default function Collections() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -93,28 +93,30 @@ export default function Collections() {
             autoFocus={false}
           />
 
-          <SortSelect
-            value={sortField}
-            onChange={(val) => setSortField(val as SortField)}
-            options={[
-              { label: 'Name', value: 'name' },
-              { label: 'Author', value: 'author' },
-              { label: 'Date', value: 'added' },
-            ]}
-          />
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+            <SortSelect
+              value={sortField}
+              onChange={(val) => setSortField(val as SortField)}
+              options={[
+                { label: 'Name', value: 'name' },
+                { label: 'Author', value: 'author' },
+                { label: 'Date', value: 'added' },
+              ]}
+            />
 
-          <SortDirectionButton
-            direction={sortDir}
-            onToggle={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-          />
+            <SortDirectionButton
+              direction={sortDir}
+              onToggle={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+            />
 
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <FolderPlus size={14} />
-            <span>New</span>
-          </button>
+            <button
+              onClick={() => setShowAdd(!showAdd)}
+              className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <FolderPlus size={14} />
+              <span>New</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -175,19 +177,19 @@ export default function Collections() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35 }}
-                className="bg-white hover:bg-neutral-50 rounded-2xl border border-neutral-200/80 hover:border-neutral-300 p-5 shadow-sm hover:shadow-md transition-all duration-200 grid grid-cols-[96px_1fr] gap-5 items-center group cursor-default"
+                className="bg-white hover:bg-neutral-50 rounded-2xl border border-neutral-200/80 hover:border-neutral-300 p-3.5 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 grid grid-cols-[80px_1fr] sm:grid-cols-[96px_1fr] gap-3.5 sm:gap-5 items-center group cursor-default overflow-hidden"
               >
-                <div className="relative h-28 w-full flex items-center justify-center">
+                <div className="relative h-24 sm:h-28 w-full flex items-center justify-center">
                   {covers.length > 0 ? (
                     covers.map((book, i) => {
                       const validSrc = book.coverImage && book.coverImage.trim() !== '' ? book.coverImage : null
                       const rotations = ['-5deg', '0deg', '5deg']
-                      const offsets = ['-10px', '0px', '10px']
+                      const offsets = ['-8px', '0px', '8px']
 
                       return (
                         <div
                           key={book.id}
-                          className="absolute w-16 h-24 rounded-md overflow-hidden shadow-md"
+                          className="absolute w-14 h-20 sm:w-16 sm:h-24 rounded-md overflow-hidden shadow-md"
                           style={{
                             transform: `rotate(${rotations[i]}) translateX(${offsets[i]})`,
                             zIndex: 10 - i,

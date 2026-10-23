@@ -180,7 +180,7 @@ export default function AuthPage() {
 
   if (isLoading || isAuthenticated || isGuest) {
     return (
-      <div className="h-screen w-screen bg-white flex items-center justify-center">
+      <div className="h-screen w-full bg-white flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -199,7 +199,7 @@ export default function AuthPage() {
   return (
     <div
       onPointerMove={handlePointerMove}
-      className="relative min-h-screen w-screen overflow-x-hidden bg-white flex flex-col items-center justify-center p-4 sm:p-8 select-none"
+      className="relative min-h-screen w-full overflow-x-hidden bg-white flex flex-col items-center justify-center p-3.5 sm:p-8 select-none"
     >
       {/* ── INTERACTIVE MOUSE GRADIENTS (Deluxe Ambient Lighting) ── */}
       {/* 1. Primary warm soft diffusion */}
@@ -257,7 +257,7 @@ export default function AuthPage() {
         {/* Outer ambient card shadow and border */}
         <div className="relative rounded-[2.25rem] p-[1px] bg-gradient-to-b from-white/95 via-white/70 to-white/40 shadow-[0_30px_90px_-20px_rgba(28,25,23,0.08),0_12px_32px_-10px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)]">
           {/* Card surface with frosted glass & internal sheen */}
-          <div className="relative overflow-hidden rounded-[2.2rem] bg-white/80 backdrop-blur-2xl px-7 py-8 sm:px-9 sm:py-10 border border-white/80">
+          <div className="relative overflow-hidden rounded-[2.2rem] bg-white/80 backdrop-blur-2xl px-5 py-6 sm:px-9 sm:py-10 border border-white/80">
             {/* Interactive specular highlight gliding across the card surface */}
             <motion.div
               aria-hidden="true"
