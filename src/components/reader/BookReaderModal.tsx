@@ -147,6 +147,31 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   const [jumpInputVal, setJumpInputVal] = useState('')
   const settingsRef = useRef<HTMLDivElement>(null)
 
+  // Touch swipe & page turn animation state
+  const [dragOffset, setDragOffset] = useState<number>(0)
+  const [isDragging, setIsDragging] = useState<boolean>(false)
+  const [pageAnimation, setPageAnimation] = useState<'next' | 'prev' | null>(null)
+
+  const touchStateRef = useRef<{
+    startX: number
+    startY: number
+    startTime: number
+    isSwiping: boolean
+    isLockedVertical: boolean
+    active: boolean
+  }>({
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    isSwiping: false,
+    isLockedVertical: false,
+    active: false,
+  })
+
+  const touchStartRef = useRef<((clientX: number, clientY: number, hasSelection: boolean) => void) | null>(null)
+  const touchMoveRef = useRef<((clientX: number, clientY: number, cancelEvent?: () => void) => void) | null>(null)
+  const touchEndRef = useRef<((clientX: number, cancel?: boolean) => void) | null>(null)
+
   // Close settings popover when clicking outside
   useEffect(() => {
     if (!settingsOpen) return
@@ -400,13 +425,144 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   )
 
   // Handle manual page change (for PDF, EPUB or physical)
-  const handlePageChange = (newPage: number) => {
-    const clamped = Math.max(1, Math.min(newPage, totalPages))
-    setCurrentPage(clamped)
-    const newProg = Math.round((clamped / totalPages) * 100)
-    triggerAutoSave(newProg, clamped)
-    jumpToPercentage(newProg)
-  }
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      const clamped = Math.max(1, Math.min(newPage, totalPages))
+      setCurrentPage(clamped)
+      const newProg = Math.round((clamped / totalPages) * 100)
+      triggerAutoSave(newProg, clamped)
+      jumpToPercentage(newProg)
+    },
+    [totalPages, triggerAutoSave, jumpToPercentage]
+  )
+
+  // Trigger page turn with smooth animation & page flip curl
+  const triggerPageTurn = useCallback(
+    (direction: 'next' | 'prev') => {
+      if (direction === 'prev' && currentPage <= 1) {
+        setDragOffset(0)
+        setIsDragging(false)
+        return
+      }
+      if (direction === 'next' && currentPage >= totalPages) {
+        setDragOffset(0)
+        setIsDragging(false)
+        return
+      }
+
+      setPageAnimation(direction)
+      setIsDragging(false)
+
+      if (isEpub && epubRenditionRef.current) {
+        if (direction === 'next') {
+          epubRenditionRef.current.next()
+        } else {
+          epubRenditionRef.current.prev()
+        }
+      } else {
+        if (direction === 'next') {
+          handlePageChange(currentPage + 1)
+        } else {
+          handlePageChange(currentPage - 1)
+        }
+      }
+
+      setTimeout(() => {
+        setDragOffset(0)
+        setPageAnimation(null)
+      }, 260)
+    },
+    [currentPage, totalPages, isEpub, handlePageChange]
+  )
+
+  // Unified touch gesture handlers for mobile page-turn swiping
+  const onTouchStartGeneral = useCallback(
+    (clientX: number, clientY: number, hasSelection: boolean = false) => {
+      if (hasSelection) return
+      touchStateRef.current = {
+        startX: clientX,
+        startY: clientY,
+        startTime: Date.now(),
+        isSwiping: false,
+        isLockedVertical: false,
+        active: true,
+      }
+    },
+    []
+  )
+
+  const onTouchMoveGeneral = useCallback(
+    (clientX: number, clientY: number, cancelEvent?: () => void) => {
+      const state = touchStateRef.current
+      if (!state.active) return
+
+      const dx = clientX - state.startX
+      const dy = clientY - state.startY
+
+      if (!state.isSwiping && !state.isLockedVertical) {
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+          state.isLockedVertical = true
+          return
+        }
+        if (Math.abs(dx) > 10) {
+          state.isSwiping = true
+        }
+      }
+
+      if (state.isSwiping) {
+        if (cancelEvent) {
+          try {
+            cancelEvent()
+          } catch {}
+        }
+        let clampedDx = dx
+        // Apply rubberband resistance at boundaries
+        if ((currentPage <= 1 && dx > 0) || (currentPage >= totalPages && dx < 0)) {
+          clampedDx = dx * 0.25
+        }
+        setDragOffset(clampedDx)
+        setIsDragging(true)
+      }
+    },
+    [currentPage, totalPages]
+  )
+
+  const onTouchEndGeneral = useCallback(
+    (clientX: number, cancel: boolean = false) => {
+      const state = touchStateRef.current
+      if (cancel || !state.active || !state.isSwiping) {
+        state.active = false
+        state.isSwiping = false
+        setDragOffset(0)
+        setIsDragging(false)
+        return
+      }
+
+      const dx = clientX - state.startX
+      const dt = Math.max(1, Date.now() - state.startTime)
+      const velocity = dx / dt
+      const threshold = 45
+
+      if (dx < -threshold || velocity < -0.3) {
+        triggerPageTurn('next')
+      } else if (dx > threshold || velocity > 0.3) {
+        triggerPageTurn('prev')
+      } else {
+        setDragOffset(0)
+        setIsDragging(false)
+      }
+
+      state.active = false
+      state.isSwiping = false
+    },
+    [triggerPageTurn]
+  )
+
+  useEffect(() => {
+    touchStartRef.current = onTouchStartGeneral
+    touchMoveRef.current = onTouchMoveGeneral
+    touchEndRef.current = onTouchEndGeneral
+  }, [onTouchStartGeneral, onTouchMoveGeneral, onTouchEndGeneral])
 
   // Calculate selection position relative to mainContainer with edge collision detection & boundary clamping
   const updateSelectionFromRange = useCallback((range: Range, iframeEl?: HTMLElement | null) => {
@@ -744,6 +900,53 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               setSelectionPosition(null)
             }
           })
+
+          // Touch gestures for mobile page-turn animation inside EPUB iframe
+          doc.addEventListener(
+            'touchstart',
+            (e: TouchEvent) => {
+              if (!isMounted) return
+              const win = contents.window
+              const sel = win?.getSelection()
+              const hasSel = !!(sel && sel.toString()?.trim()?.length > 1)
+              if (e.touches && e.touches[0]) {
+                touchStartRef.current?.(e.touches[0].clientX, e.touches[0].clientY, hasSel)
+              }
+            },
+            { passive: true }
+          )
+
+          doc.addEventListener(
+            'touchmove',
+            (e: TouchEvent) => {
+              if (!isMounted) return
+              if (e.touches && e.touches[0]) {
+                touchMoveRef.current?.(e.touches[0].clientX, e.touches[0].clientY, () => {
+                  if (e.cancelable) e.preventDefault()
+                })
+              }
+            },
+            { passive: false }
+          )
+
+          doc.addEventListener(
+            'touchend',
+            (e: TouchEvent) => {
+              if (!isMounted) return
+              const t = e.changedTouches?.[0]
+              touchEndRef.current?.(t ? t.clientX : 0)
+            },
+            { passive: true }
+          )
+
+          doc.addEventListener(
+            'touchcancel',
+            () => {
+              if (!isMounted) return
+              touchEndRef.current?.(0, true)
+            },
+            { passive: true }
+          )
         })
 
         // Also re-apply theme on rendered event
@@ -888,17 +1091,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
       }
 
       if (e.key === 'ArrowRight') {
-        if (isEpub && epubRenditionRef.current) {
-          epubRenditionRef.current.next()
-        } else {
-          handlePageChange(currentPage + 1)
-        }
+        triggerPageTurn('next')
       } else if (e.key === 'ArrowLeft') {
-        if (isEpub && epubRenditionRef.current) {
-          epubRenditionRef.current.prev()
-        } else {
-          handlePageChange(currentPage - 1)
-        }
+        triggerPageTurn('prev')
       } else if (e.key === 'f' || e.key === 'F') {
         if (!noteModalOpen && !notesDrawerOpen) {
           setIsImmersive((prev) => !prev)
@@ -921,7 +1116,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, isEpub, currentPage, isImmersive, settingsOpen, jumpInputOpen, noteModalOpen, notesDrawerOpen, onClose])
+  }, [open, triggerPageTurn, isImmersive, settingsOpen, jumpInputOpen, noteModalOpen, notesDrawerOpen, onClose])
 
   if (!open) return null
 
@@ -1194,6 +1389,29 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           <main
             ref={mainContainerRef}
             onMouseUp={handleContainerMouseUp}
+            onTouchStart={(e) => {
+              if (e.touches && e.touches[0]) {
+                const sel = window.getSelection()
+                const hasSel = !!(sel && sel.toString()?.trim()?.length > 1)
+                onTouchStartGeneral(e.touches[0].clientX, e.touches[0].clientY, hasSel)
+              }
+            }}
+            onTouchMove={(e) => {
+              if (e.touches && e.touches[0]) {
+                onTouchMoveGeneral(e.touches[0].clientX, e.touches[0].clientY)
+              }
+            }}
+            onTouchEnd={(e) => {
+              const touch = e.changedTouches?.[0]
+              if (touch) {
+                onTouchEndGeneral(touch.clientX)
+              } else {
+                onTouchEndGeneral(touchStateRef.current.startX)
+              }
+            }}
+            onTouchCancel={() => {
+              onTouchEndGeneral(touchStateRef.current.startX, true)
+            }}
             className={`flex-1 min-h-0 w-full relative flex flex-col overflow-hidden select-text transition-colors duration-200 ${
               theme === 'dark'
                 ? 'bg-zinc-900 text-zinc-100'
@@ -1202,103 +1420,183 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                 : 'bg-white text-gray-900'
             }`}
           >
-            {/* If NO file is attached or physical format */}
-            {!activeFileUrl ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
-                <div className="w-16 h-16 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center mb-4 text-3xl">
-                  📖
-                </div>
-                <h3 className="text-xl font-bold mb-1">Modo de Lectura y Seguimiento</h3>
-                <p className="text-sm opacity-70 max-w-md mb-6 leading-relaxed">
-                  Este libro no tiene un archivo digital adjunto. Puedes registrar tus sesiones de
-                  lectura, citas y notas mientras lees tu copia impresa.
-                </p>
+            {/* Animated Page Surface with 3D Page Turn & Touch Drag Displacement */}
+            <motion.div
+              className="relative w-full h-full flex-1 flex flex-col overflow-hidden select-text"
+              style={{
+                perspective: 1200,
+                transformStyle: 'preserve-3d',
+              }}
+              animate={
+                pageAnimation === 'next'
+                  ? { x: -60, rotateY: -7, opacity: 0.5, scale: 0.98 }
+                  : pageAnimation === 'prev'
+                  ? { x: 60, rotateY: 7, opacity: 0.5, scale: 0.98 }
+                  : {
+                      x: dragOffset,
+                      rotateY: dragOffset * -0.035,
+                      opacity: 1 - Math.min(Math.abs(dragOffset) / 600, 0.35),
+                      scale: 1 - Math.min(Math.abs(dragOffset) / 1200, 0.03),
+                    }
+              }
+              transition={
+                isDragging
+                  ? { type: 'tween', duration: 0 }
+                  : { type: 'spring', stiffness: 420, damping: 32 }
+              }
+            >
+              {/* If NO file is attached or physical format */}
+              {!activeFileUrl ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+                  <div className="w-16 h-16 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center mb-4 text-3xl">
+                    📖
+                  </div>
+                  <h3 className="text-xl font-bold mb-1">Modo de Lectura y Seguimiento</h3>
+                  <p className="text-sm opacity-70 max-w-md mb-6 leading-relaxed">
+                    Este libro no tiene un archivo digital adjunto. Puedes registrar tus sesiones de
+                    lectura, citas y notas mientras lees tu copia impresa.
+                  </p>
 
-                <div className="bg-black/5 dark:bg-white/5 p-5 rounded-2xl max-w-sm w-full border border-black/10 dark:border-white/10 text-center">
-                  <p className="text-xs font-semibold mb-2">¿Tienes el archivo EPUB o PDF?</p>
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-xl text-xs font-medium hover:opacity-90 transition">
-                    <Upload size={14} />
-                    <span>{isUploading ? 'Subiendo...' : 'Adjuntar archivo digital'}</span>
-                    <input
-                      type="file"
-                      accept=".epub,.pdf"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
+                  <div className="bg-black/5 dark:bg-white/5 p-5 rounded-2xl max-w-sm w-full border border-black/10 dark:border-white/10 text-center">
+                    <p className="text-xs font-semibold mb-2">¿Tienes el archivo EPUB o PDF?</p>
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-xl text-xs font-medium hover:opacity-90 transition">
+                      <Upload size={14} />
+                      <span>{isUploading ? 'Subiendo...' : 'Adjuntar archivo digital'}</span>
+                      <input
+                        type="file"
+                        accept=".epub,.pdf"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                      />
+                    </label>
+                    {uploadError && (
+                      <p className="text-xs text-rose-500 mt-2 bg-rose-50 dark:bg-rose-950/30 px-3 py-1 rounded-lg">
+                        {uploadError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : isEpub ? (
+                /* EPUB View */
+                <div
+                  className={`flex-1 relative w-full h-full flex flex-col transition-colors duration-200 ${
+                    theme === 'dark'
+                      ? 'bg-zinc-900 text-zinc-100'
+                      : theme === 'sepia'
+                      ? 'bg-[#fbf0d9] text-[#5f4b32]'
+                      : 'bg-white text-gray-900'
+                  }`}
+                >
+                  {epubLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-inherit z-20">
+                      <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin mb-3" />
+                      <p className="text-xs opacity-70 font-medium">Cargando libro en página {currentPage}...</p>
+                    </div>
+                  )}
+
+                  {epubError ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                      <p className="text-sm opacity-80 mb-4">{epubError}</p>
+                      <a
+                        href={activeFileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 text-xs font-semibold"
+                      >
+                        Descargar o abrir archivo directamente
+                      </a>
+                    </div>
+                  ) : (
+                    <div
+                      ref={viewerRef}
+                      className={`w-full h-full flex-1 select-text transition-colors duration-200 ${
+                        theme === 'dark'
+                          ? 'bg-zinc-900 text-zinc-100'
+                          : theme === 'sepia'
+                          ? 'bg-[#fbf0d9] text-[#5f4b32]'
+                          : 'bg-white text-gray-900'
+                      }`}
                     />
-                  </label>
-                  {uploadError && (
-                    <p className="text-xs text-rose-500 mt-2 bg-rose-50 dark:bg-rose-950/30 px-3 py-1 rounded-lg">
-                      {uploadError}
-                    </p>
                   )}
                 </div>
-              </div>
-            ) : isEpub ? (
-              /* EPUB View */
-              <div
-                className={`flex-1 relative w-full h-full flex flex-col transition-colors duration-200 ${
-                  theme === 'dark'
-                    ? 'bg-zinc-900 text-zinc-100'
-                    : theme === 'sepia'
-                    ? 'bg-[#fbf0d9] text-[#5f4b32]'
-                    : 'bg-white text-gray-900'
-                }`}
-              >
-                {epubLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-inherit z-20">
-                    <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin mb-3" />
-                    <p className="text-xs opacity-70 font-medium">Cargando libro en página {currentPage}...</p>
-                  </div>
-                )}
-
-                {epubError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                    <p className="text-sm opacity-80 mb-4">{epubError}</p>
-                    <a
-                      href={activeFileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 text-xs font-semibold"
-                    >
-                      Descargar o abrir archivo directamente
-                    </a>
-                  </div>
-                ) : (
-                  <div
-                    ref={viewerRef}
-                    className={`w-full h-full flex-1 select-text transition-colors duration-200 ${
-                      theme === 'dark'
-                        ? 'bg-zinc-900 text-zinc-100'
-                        : theme === 'sepia'
-                        ? 'bg-[#fbf0d9] text-[#5f4b32]'
-                        : 'bg-white text-gray-900'
-                    }`}
+              ) : isPdf ? (
+                /* PDF View */
+                <div className="flex-1 relative w-full h-full">
+                  <iframe
+                    src={`${activeFileUrl}#page=${currentPage}&toolbar=1`}
+                    className="w-full h-full border-none"
+                    title={currentBook.title}
                   />
-                )}
-              </div>
-            ) : isPdf ? (
-              /* PDF View */
-              <div className="flex-1 relative w-full h-full">
-                <iframe
-                  src={`${activeFileUrl}#page=${currentPage}&toolbar=1`}
-                  className="w-full h-full border-none"
-                  title={currentBook.title}
+                </div>
+              ) : (
+                /* Generic Reader View */
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                  <p className="text-sm opacity-70 mb-4">Formato no visualizable en este visor estándar.</p>
+                  <a
+                    href={activeFileUrl}
+                    download
+                    className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-semibold"
+                  >
+                    Descargar archivo
+                  </a>
+                </div>
+              )}
+
+              {/* Realistic Page Crease & Depth Shadow during finger drag or page turn */}
+              {(isDragging || pageAnimation) && (
+                <div
+                  className={`pointer-events-none absolute inset-0 z-20 transition-opacity ${
+                    dragOffset < 0 || pageAnimation === 'next'
+                      ? 'bg-gradient-to-l from-black/25 via-black/10 to-transparent'
+                      : 'bg-gradient-to-r from-black/25 via-black/10 to-transparent'
+                  }`}
+                  style={{
+                    opacity: pageAnimation ? 0.6 : Math.min(Math.abs(dragOffset) / 120, 0.7),
+                  }}
                 />
-              </div>
-            ) : (
-              /* Generic Reader View */
-              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <p className="text-sm opacity-70 mb-4">Formato no visualizable en este visor estándar.</p>
-                <a
-                  href={activeFileUrl}
-                  download
-                  className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-semibold"
+              )}
+
+              {/* Spine edge lighting effect */}
+              {(isDragging || pageAnimation) && (
+                <div
+                  className={`pointer-events-none absolute top-0 bottom-0 w-1.5 z-20 ${
+                    dragOffset < 0 || pageAnimation === 'next'
+                      ? 'right-0 bg-gradient-to-l from-white/30 to-transparent shadow-[-2px_0_8px_rgba(0,0,0,0.3)]'
+                      : 'left-0 bg-gradient-to-r from-white/30 to-transparent shadow-[2px_0_8px_rgba(0,0,0,0.3)]'
+                  }`}
+                />
+              )}
+            </motion.div>
+
+            {/* Mobile Touch Drag Indicator Badge */}
+            <AnimatePresence>
+              {isDragging && Math.abs(dragOffset) > 28 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.85, y: 10 }}
+                  transition={{ duration: 0.15 }}
+                  className={`pointer-events-none fixed bottom-16 sm:bottom-20 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md shadow-xl border border-black/10 dark:border-white/10 ${
+                    dragOffset < 0
+                      ? 'right-4 sm:right-8 bg-neutral-900/90 text-white dark:bg-white/95 dark:text-neutral-950'
+                      : 'left-4 sm:left-8 bg-neutral-900/90 text-white dark:bg-white/95 dark:text-neutral-950'
+                  }`}
                 >
-                  Descargar archivo
-                </a>
-              </div>
-            )}
+                  {dragOffset < 0 ? (
+                    <>
+                      <span>Página siguiente</span>
+                      <ChevronRight size={14} className="animate-pulse" />
+                    </>
+                  ) : (
+                    <>
+                      <ChevronLeft size={14} className="animate-pulse" />
+                      <span>Página anterior</span>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Floating Selection Tool (Quote / Note) directly above selected text */}
             <AnimatePresence>
@@ -1408,13 +1706,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
 
             {/* Subtle Side Page Turners */}
             <button
-              onClick={() => {
-                if (isEpub && epubRenditionRef.current) {
-                  epubRenditionRef.current.prev()
-                } else {
-                  handlePageChange(currentPage - 1)
-                }
-              }}
+              onClick={() => triggerPageTurn('prev')}
               disabled={currentPage <= 1}
               className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/70 dark:bg-zinc-800/70 hover:bg-white dark:hover:bg-zinc-800 text-neutral-700 dark:text-neutral-200 shadow-md border border-black/5 dark:border-white/10 opacity-0 hover:opacity-100 transition-all duration-200 disabled:opacity-0 disabled:pointer-events-none hover:scale-105 active:scale-95 cursor-pointer"
               title="Página anterior (←)"
@@ -1423,13 +1715,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
             </button>
 
             <button
-              onClick={() => {
-                if (isEpub && epubRenditionRef.current) {
-                  epubRenditionRef.current.next()
-                } else {
-                  handlePageChange(currentPage + 1)
-                }
-              }}
+              onClick={() => triggerPageTurn('next')}
               disabled={currentPage >= totalPages}
               className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/70 dark:bg-zinc-800/70 hover:bg-white dark:hover:bg-zinc-800 text-neutral-700 dark:text-neutral-200 shadow-md border border-black/5 dark:border-white/10 opacity-0 hover:opacity-100 transition-all duration-200 disabled:opacity-0 disabled:pointer-events-none hover:scale-105 active:scale-95 cursor-pointer"
               title="Página siguiente (→)"
@@ -1451,13 +1737,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
             >
               {/* Previous Page Button */}
               <button
-                onClick={() => {
-                  if (isEpub && epubRenditionRef.current) {
-                    epubRenditionRef.current.prev()
-                  } else {
-                    handlePageChange(currentPage - 1)
-                  }
-                }}
+                onClick={() => triggerPageTurn('prev')}
                 disabled={currentPage <= 1}
                 className="flex items-center gap-1 sm:gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer shrink-0"
                 title="Página anterior (←)"
@@ -1533,13 +1813,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
 
               {/* Next Page Button */}
               <button
-                onClick={() => {
-                  if (isEpub && epubRenditionRef.current) {
-                    epubRenditionRef.current.next()
-                  } else {
-                    handlePageChange(currentPage + 1)
-                  }
-                }}
+                onClick={() => triggerPageTurn('next')}
                 disabled={currentPage >= totalPages}
                 className="flex items-center gap-1 sm:gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer shrink-0"
                 title="Página siguiente (→)"
