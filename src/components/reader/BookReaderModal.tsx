@@ -150,7 +150,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   // Touch swipe & page turn animation state
   const [dragOffset, setDragOffset] = useState<number>(0)
   const [isDragging, setIsDragging] = useState<boolean>(false)
-  const [pageAnimation, setPageAnimation] = useState<'next' | 'prev' | null>(null)
+  const [flipAnimation, setFlipAnimation] = useState<{
+    direction: 'next' | 'prev'
+  } | null>(null)
 
   const touchStateRef = useRef<{
     startX: number
@@ -168,9 +170,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
     active: false,
   })
 
-  const touchStartRef = useRef<((clientX: number, clientY: number, hasSelection: boolean) => void) | null>(null)
+  const touchStartRef = useRef<((clientX: number, clientY: number, hasSelection?: boolean) => void) | null>(null)
   const touchMoveRef = useRef<((clientX: number, clientY: number, cancelEvent?: () => void) => void) | null>(null)
-  const touchEndRef = useRef<((clientX: number, cancel?: boolean) => void) | null>(null)
+  const touchEndRef = useRef<((clientX: number, clientY?: number, cancel?: boolean) => void) | null>(null)
 
   // Close settings popover when clicking outside
   useEffect(() => {
@@ -436,7 +438,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
     [totalPages, triggerAutoSave, jumpToPercentage]
   )
 
-  // Trigger page turn with smooth animation & page flip curl
+  // Trigger page turn with realistic 3D book page flip animation
   const triggerPageTurn = useCallback(
     (direction: 'next' | 'prev') => {
       if (direction === 'prev' && currentPage <= 1) {
@@ -450,7 +452,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
         return
       }
 
-      setPageAnimation(direction)
+      // Start the 3D page flip animation
+      setFlipAnimation({ direction })
+      setDragOffset(0)
       setIsDragging(false)
 
       if (isEpub && epubRenditionRef.current) {
@@ -468,9 +472,8 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
       }
 
       setTimeout(() => {
-        setDragOffset(0)
-        setPageAnimation(null)
-      }, 260)
+        setFlipAnimation(null)
+      }, 420)
     },
     [currentPage, totalPages, isEpub, handlePageChange]
   )
@@ -499,12 +502,8 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
       const dx = clientX - state.startX
       const dy = clientY - state.startY
 
-      if (!state.isSwiping && !state.isLockedVertical) {
-        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
-          state.isLockedVertical = true
-          return
-        }
-        if (Math.abs(dx) > 10) {
+      if (!state.isSwiping) {
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
           state.isSwiping = true
         }
       }
@@ -516,7 +515,6 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           } catch {}
         }
         let clampedDx = dx
-        // Apply rubberband resistance at boundaries
         if ((currentPage <= 1 && dx > 0) || (currentPage >= totalPages && dx < 0)) {
           clampedDx = dx * 0.25
         }
@@ -528,9 +526,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   )
 
   const onTouchEndGeneral = useCallback(
-    (clientX: number, cancel: boolean = false) => {
+    (clientX: number, clientY?: number, cancel: boolean = false) => {
       const state = touchStateRef.current
-      if (cancel || !state.active || !state.isSwiping) {
+      if (cancel || !state.active) {
         state.active = false
         state.isSwiping = false
         setDragOffset(0)
@@ -539,14 +537,31 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
       }
 
       const dx = clientX - state.startX
+      const dy = clientY !== undefined ? clientY - state.startY : 0
       const dt = Math.max(1, Date.now() - state.startTime)
-      const velocity = dx / dt
-      const threshold = 45
+      const velocity = Math.abs(dx) / dt
 
-      if (dx < -threshold || velocity < -0.3) {
+      const isSwipeNext = dx < -35 || (dx < -15 && velocity > 0.22)
+      const isSwipePrev = dx > 35 || (dx > 15 && velocity > 0.22)
+
+      const containerW =
+        mainContainerRef.current?.offsetWidth || (typeof window !== 'undefined' ? window.innerWidth : 360)
+      const isTap = Math.abs(dx) < 15 && Math.abs(dy) < 15 && dt < 300
+
+      if (isSwipeNext) {
         triggerPageTurn('next')
-      } else if (dx > threshold || velocity > 0.3) {
+      } else if (isSwipePrev) {
         triggerPageTurn('prev')
+      } else if (isTap) {
+        // Tap on page edges to turn page
+        if (clientX > containerW * 0.75) {
+          triggerPageTurn('next')
+        } else if (clientX < containerW * 0.25) {
+          triggerPageTurn('prev')
+        } else {
+          setDragOffset(0)
+          setIsDragging(false)
+        }
       } else {
         setDragOffset(0)
         setIsDragging(false)
@@ -822,57 +837,33 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
         applyThemeToRendition(themeRef.current)
         rendition.themes.fontSize(`${fontSize}%`)
 
-        // Determine saved location and page
-        const savedProg = currentBook.progress || 0
-        const savedPage =
-          currentBook.pages > 0 && savedProg > 0
-            ? Math.max(1, Math.round((currentBook.pages * savedProg) / 100))
-            : 1
-
-        setCurrentPage(savedPage)
-        setProgress(savedProg)
-
-        const savedCfi =
-          typeof window !== 'undefined'
-            ? localStorage.getItem(`epub_cfi_${currentBook.id}`)
-            : null
-
-        await epubBook.ready
-
-        let targetLocation: string | undefined = undefined
-
-        if (savedCfi) {
-          targetLocation = savedCfi
-        } else if (savedProg > 0 && savedProg < 100) {
-          try {
-            await epubBook.locations.generate(600)
-            const cfi = epubBook.locations.cfiFromPercentage(savedProg / 100)
-            if (cfi) {
-              targetLocation = cfi
-            }
-          } catch (e) {
-            console.warn('Locations generation fallback:', e)
+        // Touch gestures directly on rendition
+        rendition.on('touchstart', (e: TouchEvent) => {
+          if (!isMounted) return
+          if (e.touches && e.touches[0]) {
+            touchStartRef.current?.(e.touches[0].clientX, e.touches[0].clientY)
           }
+        })
 
-          if (!targetLocation && epubBook.spine?.items?.length) {
-            const spineIndex = Math.min(
-              epubBook.spine.items.length - 1,
-              Math.max(0, Math.floor(epubBook.spine.items.length * (savedProg / 100)))
-            )
-            targetLocation = epubBook.spine.items[spineIndex].href
+        rendition.on('touchmove', (e: TouchEvent) => {
+          if (!isMounted) return
+          if (e.touches && e.touches[0]) {
+            touchMoveRef.current?.(e.touches[0].clientX, e.touches[0].clientY, () => {
+              if (e.cancelable) e.preventDefault()
+            })
           }
-        }
+        })
 
-        // Display directly at saved page
-        await rendition.display(targetLocation)
+        rendition.on('touchend', (e: TouchEvent) => {
+          if (!isMounted) return
+          const t = e.changedTouches?.[0]
+          touchEndRef.current?.(t ? t.clientX : 0, t ? t.clientY : undefined)
+        })
 
-        if (!isMounted) return
-        setEpubLoading(false)
-
-        // Ensure background locations generation
-        if (!epubBook.locations || !epubBook.locations.length || !epubBook.locations.length()) {
-          epubBook.locations.generate(600).catch(() => {})
-        }
+        rendition.on('touchcancel', () => {
+          if (!isMounted) return
+          touchEndRef.current?.(0, undefined, true)
+        })
 
         // Capture text selection on mouseup inside the EPUB iframe and position toolbar directly above it
         rendition.hooks.content.register((contents: any) => {
@@ -934,7 +925,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
             (e: TouchEvent) => {
               if (!isMounted) return
               const t = e.changedTouches?.[0]
-              touchEndRef.current?.(t ? t.clientX : 0)
+              touchEndRef.current?.(t ? t.clientX : 0, t ? t.clientY : undefined)
             },
             { passive: true }
           )
@@ -943,7 +934,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
             'touchcancel',
             () => {
               if (!isMounted) return
-              touchEndRef.current?.(0, true)
+              touchEndRef.current?.(0, undefined, true)
             },
             { passive: true }
           )
@@ -972,6 +963,58 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           setShowSelectionBar(false)
           setSelectionPosition(null)
         })
+
+        // Determine saved location and page
+        const savedProg = currentBook.progress || 0
+        const savedPage =
+          currentBook.pages > 0 && savedProg > 0
+            ? Math.max(1, Math.round((currentBook.pages * savedProg) / 100))
+            : 1
+
+        setCurrentPage(savedPage)
+        setProgress(savedProg)
+
+        const savedCfi =
+          typeof window !== 'undefined'
+            ? localStorage.getItem(`epub_cfi_${currentBook.id}`)
+            : null
+
+        await epubBook.ready
+
+        let targetLocation: string | undefined = undefined
+
+        if (savedCfi) {
+          targetLocation = savedCfi
+        } else if (savedProg > 0 && savedProg < 100) {
+          try {
+            await epubBook.locations.generate(600)
+            const cfi = epubBook.locations.cfiFromPercentage(savedProg / 100)
+            if (cfi) {
+              targetLocation = cfi
+            }
+          } catch (e) {
+            console.warn('Locations generation fallback:', e)
+          }
+
+          if (!targetLocation && epubBook.spine?.items?.length) {
+            const spineIndex = Math.min(
+              epubBook.spine.items.length - 1,
+              Math.max(0, Math.floor(epubBook.spine.items.length * (savedProg / 100)))
+            )
+            targetLocation = epubBook.spine.items[spineIndex].href
+          }
+        }
+
+        // Display directly at saved page
+        await rendition.display(targetLocation)
+
+        if (!isMounted) return
+        setEpubLoading(false)
+
+        // Ensure background locations generation
+        if (!epubBook.locations || !epubBook.locations.length || !epubBook.locations.length()) {
+          epubBook.locations.generate(600).catch(() => {})
+        }
 
         // Track relocation and auto-save without wiping saved page on first load
         let hasInitialized = false
@@ -1402,17 +1445,13 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               }
             }}
             onTouchEnd={(e) => {
-              const touch = e.changedTouches?.[0]
-              if (touch) {
-                onTouchEndGeneral(touch.clientX)
-              } else {
-                onTouchEndGeneral(touchStateRef.current.startX)
-              }
+              const t = e.changedTouches?.[0]
+              onTouchEndGeneral(t ? t.clientX : 0, t ? t.clientY : undefined)
             }}
             onTouchCancel={() => {
-              onTouchEndGeneral(touchStateRef.current.startX, true)
+              onTouchEndGeneral(0, undefined, true)
             }}
-            className={`flex-1 min-h-0 w-full relative flex flex-col overflow-hidden select-text transition-colors duration-200 ${
+            className={`flex-1 min-h-0 w-full relative flex flex-col overflow-hidden select-text transition-colors duration-200 touch-pan-y ${
               theme === 'dark'
                 ? 'bg-zinc-900 text-zinc-100'
                 : theme === 'sepia'
@@ -1420,31 +1459,8 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                 : 'bg-white text-gray-900'
             }`}
           >
-            {/* Animated Page Surface with 3D Page Turn & Touch Drag Displacement */}
-            <motion.div
-              className="relative w-full h-full flex-1 flex flex-col overflow-hidden select-text"
-              style={{
-                perspective: 1200,
-                transformStyle: 'preserve-3d',
-              }}
-              animate={
-                pageAnimation === 'next'
-                  ? { x: -60, rotateY: -7, opacity: 0.5, scale: 0.98 }
-                  : pageAnimation === 'prev'
-                  ? { x: 60, rotateY: 7, opacity: 0.5, scale: 0.98 }
-                  : {
-                      x: dragOffset,
-                      rotateY: dragOffset * -0.035,
-                      opacity: 1 - Math.min(Math.abs(dragOffset) / 600, 0.35),
-                      scale: 1 - Math.min(Math.abs(dragOffset) / 1200, 0.03),
-                    }
-              }
-              transition={
-                isDragging
-                  ? { type: 'tween', duration: 0 }
-                  : { type: 'spring', stiffness: 420, damping: 32 }
-              }
-            >
+            {/* Main Reading Canvas */}
+            <div className="relative w-full h-full flex-1 flex flex-col overflow-hidden select-text">
               {/* If NO file is attached or physical format */}
               {!activeFileUrl ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
@@ -1542,32 +1558,129 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                   </a>
                 </div>
               )}
+            </div>
 
-              {/* Realistic Page Crease & Depth Shadow during finger drag or page turn */}
-              {(isDragging || pageAnimation) && (
+            {/* 3D Realistic Book Page Flip Layer */}
+            <AnimatePresence>
+              {(flipAnimation || (isDragging && Math.abs(dragOffset) > 12)) && (
                 <div
-                  className={`pointer-events-none absolute inset-0 z-20 transition-opacity ${
-                    dragOffset < 0 || pageAnimation === 'next'
-                      ? 'bg-gradient-to-l from-black/25 via-black/10 to-transparent'
-                      : 'bg-gradient-to-r from-black/25 via-black/10 to-transparent'
-                  }`}
-                  style={{
-                    opacity: pageAnimation ? 0.6 : Math.min(Math.abs(dragOffset) / 120, 0.7),
-                  }}
-                />
-              )}
+                  className="absolute inset-0 pointer-events-none z-40 overflow-hidden"
+                  style={{ perspective: 1800 }}
+                >
+                  {/* Dynamic ambient shadow on base page */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{
+                      opacity: flipAnimation
+                        ? 0.35
+                        : Math.min(0.4, (Math.abs(dragOffset) / (typeof window !== 'undefined' ? window.innerWidth : 400)) * 0.6),
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="absolute inset-0 bg-black/25 dark:bg-black/50 pointer-events-none"
+                  />
 
-              {/* Spine edge lighting effect */}
-              {(isDragging || pageAnimation) && (
-                <div
-                  className={`pointer-events-none absolute top-0 bottom-0 w-1.5 z-20 ${
-                    dragOffset < 0 || pageAnimation === 'next'
-                      ? 'right-0 bg-gradient-to-l from-white/30 to-transparent shadow-[-2px_0_8px_rgba(0,0,0,0.3)]'
-                      : 'left-0 bg-gradient-to-r from-white/30 to-transparent shadow-[2px_0_8px_rgba(0,0,0,0.3)]'
-                  }`}
-                />
+                  {/* The 3D Turning Page Leaf */}
+                  <motion.div
+                    key="flip-leaf"
+                    initial={
+                      flipAnimation
+                        ? { rotateY: flipAnimation.direction === 'next' ? 0 : -180 }
+                        : false
+                    }
+                    animate={
+                      flipAnimation
+                        ? { rotateY: flipAnimation.direction === 'next' ? -180 : 0 }
+                        : {
+                            rotateY:
+                              dragOffset < 0
+                                ? -Math.min(180, (Math.abs(dragOffset) / (typeof window !== 'undefined' ? window.innerWidth * 0.65 : 250)) * 180)
+                                : -180 + Math.min(180, (Math.abs(dragOffset) / (typeof window !== 'undefined' ? window.innerWidth * 0.65 : 250)) * 180),
+                          }
+                    }
+                    exit={{ opacity: 0 }}
+                    transition={
+                      flipAnimation
+                        ? { duration: 0.38, ease: [0.22, 1, 0.36, 1] }
+                        : { type: 'tween', duration: 0 }
+                    }
+                    style={{
+                      transformOrigin: 'left center',
+                      transformStyle: 'preserve-3d',
+                    }}
+                    className={`absolute inset-0 w-full h-full shadow-[0_15px_35px_rgba(0,0,0,0.45)] border-r ${
+                      theme === 'dark'
+                        ? 'bg-zinc-900 text-zinc-100 border-zinc-800'
+                        : theme === 'sepia'
+                        ? 'bg-[#fbf0d9] text-[#5f4b32] border-[#ebd8b3]'
+                        : 'bg-white text-gray-900 border-neutral-200'
+                    }`}
+                  >
+                    {/* Front of Page (visible from 0 to -90 deg) */}
+                    <div
+                      className="absolute inset-0 w-full h-full p-6 sm:p-10 flex flex-col justify-between overflow-hidden select-none"
+                      style={{ backfaceVisibility: 'hidden' }}
+                    >
+                      <div className="flex justify-between items-center opacity-40 text-[11px] font-serif border-b border-current/15 pb-2">
+                        <span className="truncate max-w-[200px]">{currentBook.title}</span>
+                        <span>Página {currentPage}</span>
+                      </div>
+
+                      <div className="space-y-3.5 opacity-20 my-auto">
+                        <div className="h-2.5 rounded-full bg-current w-full" />
+                        <div className="h-2.5 rounded-full bg-current w-[92%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[96%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[86%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[94%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[88%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[95%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[75%]" />
+                      </div>
+
+                      {/* Spine Crease Shadow */}
+                      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-black/30 via-black/10 to-transparent pointer-events-none" />
+                      <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black/15 to-transparent pointer-events-none" />
+
+                      <div className="flex justify-between items-center opacity-40 text-[11px] font-serif border-t border-current/15 pt-2">
+                        <span>{currentBook.author || 'LitHub'}</span>
+                        <span>{Math.round((currentPage / totalPages) * 100)}%</span>
+                      </div>
+                    </div>
+
+                    {/* Back of Page (visible from -90 to -180 deg) */}
+                    <div
+                      className="absolute inset-0 w-full h-full p-6 sm:p-10 flex flex-col justify-between overflow-hidden select-none"
+                      style={{
+                        transform: 'rotateY(180deg)',
+                        backfaceVisibility: 'hidden',
+                      }}
+                    >
+                      <div className="flex justify-between items-center opacity-40 text-[11px] font-serif border-b border-current/15 pb-2">
+                        <span>Página {dragOffset < 0 || flipAnimation?.direction === 'next' ? Math.min(totalPages, currentPage + 1) : Math.max(1, currentPage - 1)}</span>
+                        <span className="truncate max-w-[200px]">{currentBook.title}</span>
+                      </div>
+
+                      <div className="space-y-3.5 opacity-20 my-auto">
+                        <div className="h-2.5 rounded-full bg-current w-[90%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[95%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[85%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[93%]" />
+                        <div className="h-2.5 rounded-full bg-current w-[88%]" />
+                      </div>
+
+                      {/* Reverse Spine Shadow */}
+                      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black/30 via-black/10 to-transparent pointer-events-none" />
+                      <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black/15 to-transparent pointer-events-none" />
+
+                      <div className="flex justify-between items-center opacity-40 text-[11px] font-serif border-t border-current/15 pt-2">
+                        <span>{Math.round(((dragOffset < 0 || flipAnimation?.direction === 'next' ? Math.min(totalPages, currentPage + 1) : Math.max(1, currentPage - 1)) / totalPages) * 100)}%</span>
+                        <span>{currentBook.author || 'LitHub'}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
               )}
-            </motion.div>
+            </AnimatePresence>
 
             {/* Mobile Touch Drag Indicator Badge */}
             <AnimatePresence>
