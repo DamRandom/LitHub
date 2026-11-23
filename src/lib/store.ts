@@ -66,6 +66,7 @@ export interface ReadingSession {
   bookId: string
   date: string                  // ISO date string YYYY-MM-DD
   minutes: number
+  seconds?: number              // Exact duration in seconds
   pagesRead: number
 }
 
@@ -249,10 +250,17 @@ export function deleteNote(id: string): void {
 // ---------- Session helpers ----------
 export function addSession(s: Omit<ReadingSession, 'id'>): ReadingSession {
   const data = loadData()
-  const session: ReadingSession = { ...s, id: generateId() }
+  const seconds = s.seconds !== undefined ? s.seconds : s.minutes * 60
+  const session: ReadingSession = { ...s, id: generateId(), seconds }
   data.sessions.push(session)
   saveData(data)
   return session
+}
+
+export function updateSession(id: string, updates: Partial<ReadingSession>): void {
+  const data = loadData()
+  data.sessions = data.sessions.map((s) => (s.id === id ? { ...s, ...updates } : s))
+  saveData(data)
 }
 
 export function deleteSession(id: string): void {
@@ -263,30 +271,32 @@ export function deleteSession(id: string): void {
 
 // ---------- Stats helpers ----------
 export function getTotalMinutes(): number {
-  return loadData().sessions.reduce((acc, s) => acc + s.minutes, 0)
+  const totalSeconds = loadData().sessions.reduce(
+    (acc, s) => acc + (s.seconds !== undefined ? s.seconds : s.minutes * 60),
+    0
+  )
+  return Math.floor(totalSeconds / 60)
 }
 
 export function getMonthlyStats(year: number): { month: number; minutes: number; books: number }[] {
   const data = loadData()
-  const result: { month: number; minutes: number; books: Set<string> }[] = Array.from({ length: 12 }, (_, i) => ({
-    month: i + 1,
-    minutes: 0,
-    books: new Set<string>(),
-  }))
+  const monthSeconds: number[] = Array(12).fill(0)
+  const monthBooks: Set<string>[] = Array.from({ length: 12 }, () => new Set<string>())
 
   for (const session of data.sessions) {
     const d = new Date(session.date)
     if (d.getFullYear() === year) {
       const m = d.getMonth()
-      result[m].minutes += session.minutes
-      result[m].books.add(session.bookId)
+      const secs = session.seconds !== undefined ? session.seconds : session.minutes * 60
+      monthSeconds[m] += secs
+      monthBooks[m].add(session.bookId)
     }
   }
 
-  return result.map((r) => ({
-    month: r.month,
-    minutes: r.minutes,
-    books: r.books.size,
+  return monthSeconds.map((secs, i) => ({
+    month: i + 1,
+    minutes: Math.floor(secs / 60),
+    books: monthBooks[i].size,
   }))
 }
 

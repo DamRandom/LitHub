@@ -30,6 +30,7 @@ interface AppContextValue {
   updateNote: (id: string, updates: Partial<Note>) => Promise<void>
   deleteNote: (id: string) => Promise<void>
   addSession: (s: Omit<ReadingSession, 'id'>) => Promise<ReadingSession | null>
+  updateSession: (id: string, updates: Partial<ReadingSession>) => Promise<void>
   deleteSession: (id: string) => Promise<void>
   activeReaderBook: Book | null
   openReader: (book: Book) => Promise<void>
@@ -468,16 +469,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const addSession = async (s: Omit<ReadingSession, 'id'>): Promise<ReadingSession | null> => {
-    const session: ReadingSession = { ...s, id: Date.now().toString() }
-    setData((prev) => ({ ...prev, sessions: [session, ...prev.sessions] }))
+    const seconds = s.seconds !== undefined ? s.seconds : s.minutes * 60
+    const session: ReadingSession = { ...s, id: Date.now().toString(), seconds }
+    setData((prev) => {
+      const updated = { ...prev, sessions: [session, ...prev.sessions] }
+      try {
+        localStorage.setItem(isGuest ? 'lithub_guest_data' : 'lithub_data', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
     return session
   }
 
+  const updateSession = async (id: string, updates: Partial<ReadingSession>) => {
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        sessions: prev.sessions.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+      }
+      try {
+        localStorage.setItem(isGuest ? 'lithub_guest_data' : 'lithub_data', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
+  }
+
   const deleteSession = async (id: string) => {
-    setData((prev) => ({
-      ...prev,
-      sessions: prev.sessions.filter((s) => s.id !== id),
-    }))
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        sessions: prev.sessions.filter((s) => s.id !== id),
+      }
+      try {
+        localStorage.setItem(isGuest ? 'lithub_guest_data' : 'lithub_data', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
   }
 
   const openReader = async (book: Book) => {
@@ -543,6 +570,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateNote,
         deleteNote,
         addSession,
+        updateSession,
         deleteSession,
         activeReaderBook,
         openReader,

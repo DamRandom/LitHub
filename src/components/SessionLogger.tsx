@@ -28,7 +28,8 @@ export default function SessionLogger({ bookId }: Props) {
     setPagesRead('')
   }
 
-  const totalMinutes = sessions.reduce((acc, s) => acc + s.minutes, 0)
+  const totalSeconds = sessions.reduce((acc, s) => acc + (s.seconds !== undefined ? s.seconds : s.minutes * 60), 0)
+  const totalMinutes = Math.floor(totalSeconds / 60)
   const totalPages = sessions.reduce((acc, s) => acc + s.pagesRead, 0)
 
   return (
@@ -116,7 +117,12 @@ export default function SessionLogger({ bookId }: Props) {
                      {new Date(session.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </span>
                   <div className="flex gap-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><Clock size={12} /> {session.minutes} min</span>
+                    <span className="flex items-center gap-1">
+                      <Clock size={12} />{' '}
+                      {session.seconds !== undefined && session.seconds < 60
+                        ? `${session.seconds}s`
+                        : `${session.minutes} min`}
+                    </span>
                     {session.pagesRead > 0 && (
                        <span className="flex items-center gap-1"><BookOpen size={12} /> {session.pagesRead} pages</span>
                     )}

@@ -26,14 +26,16 @@ export default function Stats() {
     const sessions = data.sessions.filter(s => new Date(s.date).getFullYear() === year)
     const booksRead = data.books.filter(b => b.status === 'finished' && b.dateFinished && new Date(b.dateFinished).getFullYear() === year)
     
-    const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0)
+    const totalSeconds = sessions.reduce((sum, s) => sum + (s.seconds !== undefined ? s.seconds : s.minutes * 60), 0)
+    const totalMinutes = Math.floor(totalSeconds / 60)
     const totalPages = sessions.reduce((sum, s) => sum + s.pagesRead, 0)
     
     const monthlyData = MONTHS.map((m, i) => {
       const monthSessions = sessions.filter(s => new Date(s.date).getMonth() === i)
+      const monthSeconds = monthSessions.reduce((sum, s) => sum + (s.seconds !== undefined ? s.seconds : s.minutes * 60), 0)
       return {
         name: m,
-        minutes: monthSessions.reduce((sum, s) => sum + s.minutes, 0),
+        minutes: Math.floor(monthSeconds / 60),
         pages: monthSessions.reduce((sum, s) => sum + s.pagesRead, 0),
         books: booksRead.filter(b => new Date(b.dateFinished!).getMonth() === i).length
       }
