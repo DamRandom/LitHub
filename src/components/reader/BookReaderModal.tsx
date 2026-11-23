@@ -14,9 +14,7 @@ import {
   ZoomIn,
   ZoomOut,
   Check,
-  Play,
-  Pause,
-  RotateCcw,
+  Clock,
   Quote as QuoteIcon,
   FileText,
   Loader2,
@@ -24,9 +22,14 @@ import {
   Sparkles,
   Maximize2,
   Minimize2,
+  Volume2,
 } from 'lucide-react'
 import { Book } from '@/lib/store'
 import { useApp } from '@/lib/context'
+import TTSPlayer from './tts/TTSPlayer'
+import { useSpeechSynthesis } from './tts/useSpeechSynthesis'
+import { extractSegmentsFromRendition } from './tts/epubTextExtractor'
+import { TTSSegment } from './tts/types'
 
 interface Props {
   book: Book
@@ -88,7 +91,7 @@ function getClampedCoordinates(params: {
 }
 
 export default function BookReaderModal({ book, open, onClose }: Props) {
-  const { updateBook, data, addSession, addQuote, addNote, deleteQuote, deleteNote } = useApp()
+  const { updateBook, data, addSession, updateSession, addQuote, addNote, deleteQuote, deleteNote } = useApp()
   const currentBook = data.books.find((b) => b.id === book.id) || book
 
   const totalPages = currentBook.pages || 100
@@ -100,6 +103,10 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   const [theme, setTheme] = useState<ReaderTheme>('light')
   const [fontSize, setFontSize] = useState<number>(100)
   const [currentPage, setCurrentPage] = useState<number>(initialCalculatedPage)
+  const currentPageRef = useRef<number>(initialCalculatedPage)
+  useEffect(() => {
+    currentPageRef.current = currentPage
+  }, [currentPage])
   const [progress, setProgress] = useState<number>(currentBook.progress || 0)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [isUploading, setIsUploading] = useState(false)
@@ -128,9 +135,27 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   const toolbarRef = useRef<HTMLDivElement>(null)
   const updateSelectionFromRangeRef = useRef<any>(null)
 
-  // Timer for reading sessions
-  const [timerActive, setTimerActive] = useState(false)
-  const [secondsRead, setSecondsRead] = useState(0)
+  // Unified automatic reading timer & inactivity state
+  const INACTIVITY_THRESHOLD_SECONDS = 300 // 5 minutes inactivity threshold
+  const [secondsRead, setSecondsRead] = useState<number>(0)
+  const [inactivityModalOpen, setInactivityModalOpen] = useState<boolean>(false)
+  const inactivitySecondsRef = useRef<number>(0)
+  const secondsReadRef = useRef<number>(0)
+  const activeSessionIdRef = useRef<string | null>(null)
+  const currentBookIdRef = useRef<string>(book.id)
+  const initialPageRef = useRef<number>(initialCalculatedPage)
+  const persistedSecondsRef = useRef<number>(0)
+  const ttsWasPlayingOnInactivityRef = useRef<boolean>(false)
+  const recordActivityRef = useRef<() => void>(() => {})
+  const flushReadingSessionRef = useRef<((isFinal?: boolean) => Promise<void> | void) | null>(null)
+
+  const recordUserActivity = useCallback(() => {
+    inactivitySecondsRef.current = 0
+  }, [])
+
+  useEffect(() => {
+    recordActivityRef.current = recordUserActivity
+  }, [recordUserActivity])
 
   // EPUB State
   const viewerRef = useRef<HTMLDivElement>(null)
@@ -244,7 +269,14 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           doc.head?.appendChild(styleTag)
         }
         styleTag.textContent = `
-          html, body {
+          html {
+            height: 100% !important;
+            box-sizing: border-box !important;
+          }
+          body {
+            margin: 0 auto !important;
+            padding: 0 0.5rem !important;
+            box-sizing: border-box !important;
             background-color: ${bg} !important;
             background: ${bg} !important;
             color: ${color} !important;
@@ -255,6 +287,17 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           p, span, div, h1, h2, h3, h4, h5, h6, li, blockquote, dd, dt, em, strong, b, i, section, article {
             background-color: transparent !important;
             color: ${color} !important;
+          }
+          p {
+            line-height: 1.62 !important;
+            hyphens: auto !important;
+            -webkit-hyphens: auto !important;
+            word-break: break-word !important;
+          }
+          img, svg, image {
+            max-width: 100% !important;
+            height: auto !important;
+            object-fit: contain !important;
           }
           a, a:link, a:visited {
             color: ${linkColor} !important;
@@ -336,17 +379,8 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
             updates.dateStarted = new Date().toISOString().slice(0, 10)
           }
 
-          // If minutes were tracked, log session
-          if (secondsRead >= 60) {
-            const mins = Math.round(secondsRead / 60)
-            const pagesRead = calculatedPage ? Math.max(0, calculatedPage - currentPage) : 0
-            addSession({
-              bookId: currentBook.id,
-              date: new Date().toISOString().slice(0, 10),
-              minutes: mins,
-              pagesRead: pagesRead || 1,
-            })
-          }
+          // Automatically flush any unlogged reading minutes
+          flushReadingSessionRef.current?.(false)
 
           await updateBook(currentBook.id, updates)
           setSaveStatus('saved')
@@ -357,16 +391,19 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
         }
       }, 500)
     },
-    [currentBook, updateBook, secondsRead, currentPage, addSession]
+    [currentBook, updateBook]
   )
 
-  // When modal opens, sync book state and mark as reading & last opened
+  // When modal opens, sync book state if not already marked as reading
   useEffect(() => {
     if (open && currentBook) {
+      if (currentBook.status === 'reading' && currentBook.lastOpenedAt) {
+        return
+      }
       const now = new Date().toISOString()
       const updates: Partial<Book> = {
         lastOpenedAt: now,
-        status: currentBook.status === 'finished' ? 'reading' : 'reading',
+        status: 'reading',
       }
       if (!currentBook.dateStarted) {
         updates.dateStarted = now.slice(0, 10)
@@ -375,18 +412,28 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
     }
   }, [open, currentBook?.id])
 
-  // Timer interval
+  // Reset reading timer & inactivity state when book changes (finalizing previous session if needed)
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    if (timerActive) {
-      interval = setInterval(() => {
-        setSecondsRead((s) => s + 1)
-      }, 1000)
+    if (currentBookIdRef.current && currentBookIdRef.current !== currentBook.id) {
+      if (secondsReadRef.current > 0) {
+        flushReadingSessionRef.current?.(true)
+      }
+      currentBookIdRef.current = currentBook.id
+      setSecondsRead(0)
+      secondsReadRef.current = 0
+      persistedSecondsRef.current = 0
+      activeSessionIdRef.current = null
+      inactivitySecondsRef.current = 0
+      setInactivityModalOpen(false)
+      ttsWasPlayingOnInactivityRef.current = false
+      initialPageRef.current = initialCalculatedPage
     }
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [timerActive])
+  }, [currentBook.id, initialCalculatedPage])
+
+  // Sync secondsRead state to ref
+  useEffect(() => {
+    secondsReadRef.current = secondsRead
+  }, [secondsRead])
 
   // Format timer
   const formatTime = (secs: number) => {
@@ -398,6 +445,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   // Jump to percentage in EPUB
   const jumpToPercentage = useCallback(
     (pct: number) => {
+      recordUserActivity()
       if (isEpub && epubBookRef.current && epubRenditionRef.current) {
         try {
           if (
@@ -423,24 +471,26 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
         }
       }
     },
-    [isEpub]
+    [isEpub, recordUserActivity]
   )
 
   // Handle manual page change (for PDF, EPUB or physical)
   const handlePageChange = useCallback(
     (newPage: number) => {
+      recordUserActivity()
       const clamped = Math.max(1, Math.min(newPage, totalPages))
       setCurrentPage(clamped)
       const newProg = Math.round((clamped / totalPages) * 100)
       triggerAutoSave(newProg, clamped)
       jumpToPercentage(newProg)
     },
-    [totalPages, triggerAutoSave, jumpToPercentage]
+    [totalPages, triggerAutoSave, jumpToPercentage, recordUserActivity]
   )
 
   // Trigger page turn with realistic 3D book page flip animation
   const triggerPageTurn = useCallback(
     (direction: 'next' | 'prev') => {
+      recordUserActivity()
       if (direction === 'prev' && currentPage <= 1) {
         setDragOffset(0)
         setIsDragging(false)
@@ -475,12 +525,330 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
         setFlipAnimation(null)
       }, 420)
     },
-    [currentPage, totalPages, isEpub, handlePageChange]
+    [currentPage, totalPages, isEpub, handlePageChange, recordUserActivity]
   )
+
+  // TTS State & Integration
+  const [ttsOpen, setTtsOpen] = useState(false)
+  const ttsOpenRef = useRef<boolean>(false)
+  useEffect(() => {
+    ttsOpenRef.current = ttsOpen
+  }, [ttsOpen])
+
+  const refreshTtsSegmentsRef = useRef<(() => void) | null>(null)
+  const ttsSetSegmentsRef = useRef<((segments: TTSSegment[], autoStart?: boolean, initialIndex?: number) => void) | null>(null)
+  const ttsStopRef = useRef<(() => void) | null>(null)
+  const isPageTransitioningRef = useRef<boolean>(false)
+
+  const handleTtsPageComplete = useCallback(async () => {
+    // Only advance if TTS is actively open and playing
+    if (!ttsOpenRef.current || ttsRef.current.status !== 'playing') {
+      return
+    }
+
+    if (currentPageRef.current < totalPages && isEpub && epubRenditionRef.current) {
+      isPageTransitioningRef.current = true
+      try {
+        await epubRenditionRef.current.next()
+        await new Promise((resolve) => setTimeout(resolve, 140))
+
+        // Check again after async page turn to prevent race condition if user stopped TTS
+        if (!ttsOpenRef.current || ttsRef.current.status !== 'playing') {
+          return
+        }
+
+        if (viewerRef.current) {
+          const segs = extractSegmentsFromRendition(
+            epubRenditionRef.current,
+            viewerRef.current,
+            currentBook.description || currentBook.title
+          )
+          if (segs.length > 0) {
+            ttsSetSegmentsRef.current?.(segs, true, 0)
+          } else {
+            ttsStopRef.current?.()
+          }
+        }
+      } catch (err) {
+        console.warn('Error during continuous TTS page transition:', err)
+        ttsStopRef.current?.()
+      } finally {
+        isPageTransitioningRef.current = false
+      }
+    } else {
+      ttsStopRef.current?.()
+    }
+  }, [totalPages, isEpub, currentBook.description, currentBook.title])
+
+  const handleTtsPrevPage = useCallback(async () => {
+    if (!ttsOpenRef.current || (ttsRef.current.status !== 'playing' && ttsRef.current.status !== 'paused')) {
+      return
+    }
+
+    if (currentPageRef.current > 1 && isEpub && epubRenditionRef.current) {
+      isPageTransitioningRef.current = true
+      try {
+        await epubRenditionRef.current.prev()
+        await new Promise((resolve) => setTimeout(resolve, 140))
+
+        if (!ttsOpenRef.current) {
+          return
+        }
+
+        if (viewerRef.current) {
+          const segs = extractSegmentsFromRendition(
+            epubRenditionRef.current,
+            viewerRef.current,
+            currentBook.description || currentBook.title
+          )
+          if (segs.length > 0) {
+            const lastIdx = Math.max(0, segs.length - 1)
+            ttsSetSegmentsRef.current?.(segs, ttsRef.current.status === 'playing', lastIdx)
+          } else {
+            ttsStopRef.current?.()
+          }
+        }
+      } catch (err) {
+        console.warn('Error during continuous TTS prev page transition:', err)
+        ttsStopRef.current?.()
+      } finally {
+        isPageTransitioningRef.current = false
+      }
+    }
+  }, [isEpub, currentBook.description, currentBook.title])
+
+  const tts = useSpeechSynthesis({
+    bookLanguage: currentBook.language || 'es',
+    onPageComplete: handleTtsPageComplete,
+    onPrevPage: handleTtsPrevPage,
+  })
+
+  // Stable ref for TTS to prevent timer interval recreation on TTS state updates
+  const ttsRef = useRef(tts)
+  useEffect(() => {
+    ttsRef.current = tts
+  }, [tts])
+
+  useEffect(() => {
+    ttsStopRef.current = tts.stop
+    ttsSetSegmentsRef.current = tts.setSegments
+  }, [tts.stop, tts.setSegments])
+
+  const refreshTtsSegments = useCallback(() => {
+    // Only refresh segments if TTS session is actively running or paused
+    if (!ttsOpenRef.current || (ttsRef.current.status !== 'playing' && ttsRef.current.status !== 'paused')) {
+      return
+    }
+    if (!viewerRef.current || !epubRenditionRef.current) return
+    const segs = extractSegmentsFromRendition(
+      epubRenditionRef.current,
+      viewerRef.current,
+      currentBook.description || currentBook.title
+    )
+    if (segs.length > 0) {
+      ttsSetSegmentsRef.current?.(segs, ttsRef.current.status === 'playing', 0)
+    }
+  }, [currentBook.description, currentBook.title])
+
+  useEffect(() => {
+    refreshTtsSegmentsRef.current = refreshTtsSegments
+  }, [refreshTtsSegments])
+
+  const toggleTTS = useCallback(() => {
+    if (!ttsOpen) {
+      tts.stop()
+      setTtsOpen(true)
+      ttsOpenRef.current = true
+      if (viewerRef.current && epubRenditionRef.current) {
+        const segs = extractSegmentsFromRendition(
+          epubRenditionRef.current,
+          viewerRef.current,
+          currentBook.description || currentBook.title
+        )
+        tts.setSegments(segs, false, 0)
+        tts.play()
+      }
+    } else {
+      tts.stop()
+      setTtsOpen(false)
+      ttsOpenRef.current = false
+    }
+  }, [ttsOpen, tts, currentBook.description, currentBook.title])
+
+  const handleTtsPlay = useCallback(() => {
+    if (tts.segments.length === 0 || tts.status === 'stopped') {
+      if (viewerRef.current && epubRenditionRef.current) {
+        const segs = extractSegmentsFromRendition(
+          epubRenditionRef.current,
+          viewerRef.current,
+          currentBook.description || currentBook.title
+        )
+        tts.setSegments(segs, false, 0)
+      }
+    }
+    tts.play()
+  }, [tts, currentBook.description, currentBook.title])
+
+  const handleTtsClose = useCallback(() => {
+    tts.stop()
+    setTtsOpen(false)
+    ttsOpenRef.current = false
+  }, [tts])
+
+  // Flush accumulated reading session (preserving exact seconds and updating in-place)
+  const flushReadingSession = useCallback(
+    async (isFinal = false) => {
+      const targetBookId = currentBookIdRef.current
+      const currentSeconds = secondsReadRef.current
+      if (!targetBookId || currentSeconds <= 0) return
+
+      // Don't issue redundant update if seconds haven't changed since last persist and not final
+      if (currentSeconds === persistedSecondsRef.current && !isFinal) return
+
+      const calculatedMinutes = Math.floor(currentSeconds / 60)
+      const pagesRead = Math.max(1, currentPageRef.current - initialPageRef.current)
+      const sessionDate = new Date().toISOString().slice(0, 10)
+
+      try {
+        if (!activeSessionIdRef.current) {
+          const newSession = await addSession({
+            bookId: targetBookId,
+            date: sessionDate,
+            minutes: calculatedMinutes,
+            seconds: currentSeconds,
+            pagesRead,
+          })
+          if (newSession) {
+            activeSessionIdRef.current = newSession.id
+          }
+        } else {
+          await updateSession(activeSessionIdRef.current, {
+            minutes: calculatedMinutes,
+            seconds: currentSeconds,
+            pagesRead,
+          })
+        }
+        persistedSecondsRef.current = currentSeconds
+      } catch (err) {
+        console.warn('Error flushing reading session:', err)
+      }
+
+      if (isFinal) {
+        activeSessionIdRef.current = null
+        persistedSecondsRef.current = 0
+        initialPageRef.current = currentPageRef.current
+      }
+    },
+    [addSession, updateSession]
+  )
+
+  useEffect(() => {
+    flushReadingSessionRef.current = flushReadingSession
+  }, [flushReadingSession])
+
+  const handleModalClose = useCallback(() => {
+    flushReadingSession(true)
+    tts.stop()
+    setTtsOpen(false)
+    ttsOpenRef.current = false
+    setInactivityModalOpen(false)
+    onClose()
+  }, [flushReadingSession, tts, onClose])
+
+  // Authoritative automatic reading timer
+  useEffect(() => {
+    if (!open) return
+
+    const interval = setInterval(() => {
+      // Pause if browser tab is hidden or inactivity modal is currently displayed
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return
+      }
+      if (inactivityModalOpen) {
+        return
+      }
+
+      const next = secondsReadRef.current + 1
+      secondsReadRef.current = next
+      setSecondsRead(next)
+
+      // Active TTS listening counts as active consumption: reset inactivity counter
+      const isTTSPlaying = ttsRef.current.status === 'playing'
+      if (isTTSPlaying) {
+        inactivitySecondsRef.current = 0
+      } else {
+        inactivitySecondsRef.current += 1
+      }
+
+      // Periodic persistence of active session approximately every 15 seconds (outside of state updater)
+      if (next % 15 === 0) {
+        flushReadingSessionRef.current?.(false)
+      }
+
+      // 5-minute inactivity threshold reached (300 seconds without activity)
+      if (!isTTSPlaying && inactivitySecondsRef.current >= INACTIVITY_THRESHOLD_SECONDS) {
+        setInactivityModalOpen(true)
+        if (ttsRef.current.status === 'playing') {
+          ttsWasPlayingOnInactivityRef.current = true
+          ttsRef.current.pause()
+        } else {
+          ttsWasPlayingOnInactivityRef.current = false
+        }
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [open, inactivityModalOpen])
+
+  // Protect reading session against abrupt browser closure or backgrounding
+  useEffect(() => {
+    if (!open) return
+
+    const handleVisibilityOrUnload = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        flushReadingSessionRef.current?.(false)
+      }
+    }
+
+    const handlePageHide = () => {
+      flushReadingSessionRef.current?.(false)
+    }
+
+    if (typeof window !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityOrUnload)
+      window.addEventListener('pagehide', handlePageHide)
+      window.addEventListener('beforeunload', handlePageHide)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityOrUnload)
+        window.removeEventListener('pagehide', handlePageHide)
+        window.removeEventListener('beforeunload', handlePageHide)
+      }
+    }
+  }, [open])
+
+  // Inactivity modal response actions
+  const handleContinueReading = useCallback(() => {
+    setInactivityModalOpen(false)
+    recordUserActivity()
+    if (ttsWasPlayingOnInactivityRef.current) {
+      tts.resume()
+      ttsWasPlayingOnInactivityRef.current = false
+    }
+  }, [recordUserActivity, tts])
+
+  const handleExitFromInactivity = useCallback(() => {
+    setInactivityModalOpen(false)
+    ttsWasPlayingOnInactivityRef.current = false
+    handleModalClose()
+  }, [handleModalClose])
 
   // Unified touch gesture handlers for mobile page-turn swiping
   const onTouchStartGeneral = useCallback(
     (clientX: number, clientY: number, hasSelection: boolean = false) => {
+      recordUserActivity()
       if (hasSelection) return
       touchStateRef.current = {
         startX: clientX,
@@ -491,7 +859,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
         active: true,
       }
     },
-    []
+    [recordUserActivity]
   )
 
   const onTouchMoveGeneral = useCallback(
@@ -820,8 +1188,18 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           height: '100%',
           flow: 'paginated',
           spread: 'auto',
+          minSpreadWidth: 860,
         })
         epubRenditionRef.current = rendition
+
+        // Re-calculate layout columns on window resize
+        const handleRenditionResize = () => {
+          if (!isMounted || !epubRenditionRef.current) return
+          try {
+            epubRenditionRef.current.resize()
+          } catch {}
+        }
+        window.addEventListener('resize', handleRenditionResize)
 
         // Apply clean theme colors in epub.js
         rendition.themes.register('light', {
@@ -873,6 +1251,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
 
           doc.addEventListener('mouseup', () => {
             if (!isMounted) return
+            recordActivityRef.current?.()
             const win = contents.window
             const sel = win?.getSelection()
             if (sel && sel.rangeCount > 0 && sel.toString()?.trim()?.length > 1) {
@@ -884,6 +1263,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
 
           doc.addEventListener('mousedown', () => {
             if (!isMounted) return
+            recordActivityRef.current?.()
             const win = contents.window
             const sel = win?.getSelection()
             if (!sel || sel.isCollapsed) {
@@ -1021,6 +1401,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
 
         rendition.on('relocated', (location: any) => {
           if (!isMounted) return
+          recordActivityRef.current?.()
           applyThemeToRendition(themeRef.current)
           if (location && location.start) {
             if (location.start.cfi && typeof window !== 'undefined') {
@@ -1069,6 +1450,23 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               setProgress(progPercent)
               setCurrentPage(calculatedPage)
               triggerAutoSave(progPercent, calculatedPage)
+
+              // Refresh TTS segments only if TTS is actively running or paused within an open session
+              if (
+                ttsOpenRef.current &&
+                (ttsRef.current.status === 'playing' || ttsRef.current.status === 'paused') &&
+                !isPageTransitioningRef.current
+              ) {
+                setTimeout(() => {
+                  if (
+                    isMounted &&
+                    ttsOpenRef.current &&
+                    (ttsRef.current.status === 'playing' || ttsRef.current.status === 'paused')
+                  ) {
+                    refreshTtsSegmentsRef.current?.()
+                  }
+                }, 180)
+              }
             }
           }
         })
@@ -1122,6 +1520,13 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
     const handleKeyDown = (e: KeyboardEvent) => {
+      recordUserActivity()
+
+      // When inactivity validation modal is open, ignore general reader shortcuts
+      if (inactivityModalOpen) {
+        return
+      }
+
       // Don't intercept arrow keys if user is typing in inputs or textareas
       if (
         e.target instanceof HTMLInputElement ||
@@ -1153,13 +1558,13 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
         } else if (notesDrawerOpen) {
           setNotesDrawerOpen(false)
         } else {
-          onClose()
+          handleModalClose()
         }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, triggerPageTurn, isImmersive, settingsOpen, jumpInputOpen, noteModalOpen, notesDrawerOpen, onClose])
+  }, [open, triggerPageTurn, isImmersive, settingsOpen, jumpInputOpen, noteModalOpen, notesDrawerOpen, handleModalClose, recordUserActivity, inactivityModalOpen])
 
   if (!open) return null
 
@@ -1197,14 +1602,14 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               {/* Left: Book info */}
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button
-                  onClick={onClose}
+                  onClick={handleModalClose}
                   className="p-1 sm:p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer text-neutral-500 hover:text-neutral-900 shrink-0"
                   title="Cerrar visor (Esc)"
                 >
                   <X size={18} />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-bold truncate max-w-[130px] sm:max-w-xs md:max-w-md leading-tight">
+                  <h3 className="text-xs sm:text-sm font-bold truncate leading-tight">
                     {currentBook.title}
                   </h3>
                   <p className="text-[10px] sm:text-[11px] opacity-60 truncate">
@@ -1216,19 +1621,42 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
               {/* Center: Discreet Reading Info Pill */}
               <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200/80 text-[11px] font-medium text-neutral-600 shrink-0">
                 <span>Pág. {currentPage} de {totalPages}</span>
-                {timerActive && (
-                  <>
-                    <span className="opacity-40">•</span>
-                    <span className="font-mono text-neutral-800 flex items-center gap-1 font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      {formatTime(secondsRead)}
-                    </span>
-                  </>
-                )}
+                <span className="opacity-40">•</span>
+                <span
+                  className="font-mono text-neutral-800 flex items-center gap-1 font-semibold"
+                  title={inactivityModalOpen ? 'Pausado por inactividad' : 'Tiempo de lectura automático'}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      inactivityModalOpen ? 'bg-neutral-400' : 'bg-emerald-500 animate-pulse'
+                    }`}
+                  />
+                  {formatTime(secondsRead)}
+                </span>
               </div>
 
-              {/* Right: Consolidated Controls (Aa Settings, Notes & Quotes, Immersive Mode) */}
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 relative">
+              {/* Right: Consolidated Controls (Escuchar TTS, Aa Settings, Notes & Quotes, Immersive Mode) */}
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0 relative">
+                {/* TTS Audio Player Trigger Button */}
+                <button
+                  onClick={toggleTTS}
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                    ttsOpen || tts.status === 'playing'
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm'
+                      : 'bg-white hover:bg-neutral-50 text-neutral-800 border-neutral-200/90 hover:border-neutral-300 shadow-2xs'
+                  }`}
+                  title="Escuchar libro en voz alta (Text-to-Speech)"
+                  aria-label="Escuchar libro"
+                >
+                  <Volume2
+                    size={14}
+                    className={tts.status === 'playing' ? 'animate-pulse text-white' : 'text-neutral-700'}
+                  />
+                  <span className="hidden sm:inline">
+                    {tts.status === 'playing' ? 'Escuchando' : 'Escuchar'}
+                  </span>
+                </button>
+
                 {/* Aa Settings Popover */}
                 <div className="relative" ref={settingsRef}>
                   <button
@@ -1260,7 +1688,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.15, ease: 'easeOut' }}
-                        className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl p-4 z-50 space-y-4 text-neutral-800 dark:text-neutral-100 ring-1 ring-black/5"
+                        className="fixed sm:absolute top-14 sm:top-full mt-2 left-3 right-3 sm:left-auto sm:right-0 max-w-sm sm:w-72 sm:max-w-[calc(100vw-1.5rem)] mx-auto sm:mx-0 bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl p-4 z-50 space-y-4 text-neutral-800 dark:text-neutral-100 ring-1 ring-black/5"
                       >
                         {/* Tema */}
                         <div>
@@ -1334,34 +1762,26 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                           </div>
                         )}
 
-                        {/* Sesión de Lectura (Cronómetro) */}
+                        {/* Sesión de Lectura (Automática) */}
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Sesión de lectura</span>
-                            <span className="text-xs font-mono font-bold text-neutral-900 dark:text-white">{formatTime(secondsRead)}</span>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                              Tiempo de lectura
+                            </span>
+                            <span className="text-xs font-mono font-bold text-neutral-900 dark:text-white flex items-center gap-1.5">
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  inactivityModalOpen
+                                    ? 'bg-neutral-400'
+                                    : 'bg-emerald-500 animate-pulse'
+                                }`}
+                              />
+                              {formatTime(secondsRead)}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setTimerActive(!timerActive)}
-                              className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                                timerActive
-                                  ? 'bg-neutral-800 text-white shadow-xs'
-                                  : 'bg-neutral-900 hover:bg-neutral-800 text-white shadow-xs'
-                              }`}
-                            >
-                              {timerActive ? <Pause size={13} /> : <Play size={13} />}
-                              <span>{timerActive ? 'Pausar' : 'Iniciar sesión'}</span>
-                            </button>
-                            {secondsRead > 0 && !timerActive && (
-                              <button
-                                onClick={() => setSecondsRead(0)}
-                                className="p-2 rounded-xl border border-neutral-200 dark:border-zinc-700 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition cursor-pointer"
-                                title="Reiniciar cronómetro"
-                              >
-                                <RotateCcw size={13} />
-                              </button>
-                            )}
-                          </div>
+                          <p className="text-[11px] text-neutral-500 dark:text-zinc-400">
+                            Registro automático mientras lees o escuchas.
+                          </p>
                         </div>
 
                         {/* Estado de sincronización */}
@@ -1393,9 +1813,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                   title="Ver notas y citas de este libro"
                 >
                   <QuoteIcon size={13} className="text-neutral-700" />
-                  <span className="hidden sm:inline">Notas</span>
+                  <span className="hidden md:inline">Notas</span>
                   {bookQuotes.length + bookNotes.length > 0 && (
-                    <span className="text-[10px] bg-neutral-100 text-neutral-800 border border-neutral-200 px-1.5 py-0.2 rounded-full font-bold">
+                    <span className="text-[9px] sm:text-[10px] bg-neutral-100 text-neutral-800 border border-neutral-200 px-1 sm:px-1.5 py-0.2 rounded-full font-bold">
                       {bookQuotes.length + bookNotes.length}
                     </span>
                   )}
@@ -1431,6 +1851,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           {/* Reader Body */}
           <main
             ref={mainContainerRef}
+            onMouseDown={recordUserActivity}
             onMouseUp={handleContainerMouseUp}
             onTouchStart={(e) => {
               if (e.touches && e.touches[0]) {
@@ -1524,16 +1945,18 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                       </a>
                     </div>
                   ) : (
-                    <div
-                      ref={viewerRef}
-                      className={`w-full h-full flex-1 select-text transition-colors duration-200 ${
-                        theme === 'dark'
-                          ? 'bg-zinc-900 text-zinc-100'
-                          : theme === 'sepia'
-                          ? 'bg-[#fbf0d9] text-[#5f4b32]'
-                          : 'bg-white text-gray-900'
-                      }`}
-                    />
+                    <div className="w-full h-full flex-1 flex items-center justify-center overflow-hidden">
+                      <div
+                        ref={viewerRef}
+                        className={`w-full h-full max-w-5xl mx-auto px-2 sm:px-6 md:px-10 py-1 sm:py-2 select-text transition-colors duration-200 ${
+                          theme === 'dark'
+                            ? 'bg-zinc-900 text-zinc-100'
+                            : theme === 'sepia'
+                            ? 'bg-[#fbf0d9] text-[#5f4b32]'
+                            : 'bg-white text-gray-900'
+                        }`}
+                      />
+                    </div>
                   )}
                 </div>
               ) : isPdf ? (
@@ -1941,7 +2364,7 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
           <AnimatePresence>
             {noteModalOpen && (
               <div
-                className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
                 onClick={() => setNoteModalOpen(false)}
               >
                 <motion.div
@@ -1949,9 +2372,9 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-gray-100 dark:border-zinc-800 space-y-4"
+                  className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85dvh] flex flex-col p-4 sm:p-6 border border-gray-100 dark:border-zinc-800 space-y-3 sm:space-y-4 overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between shrink-0">
                     <div>
                       <h4 className="text-base font-bold flex items-center gap-2">
                         <FileText size={18} className="text-indigo-600 dark:text-indigo-400" />
@@ -1963,43 +2386,45 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                     </div>
                     <button
                       onClick={() => setNoteModalOpen(false)}
-                      className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                      className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white cursor-pointer"
                     >
                       <X size={18} />
                     </button>
                   </div>
 
-                  {selectedText && (
-                    <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-xs text-amber-900 dark:text-amber-200 italic leading-relaxed">
-                      «{selectedText}»
-                    </div>
-                  )}
+                  <div className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 pr-1">
+                    {selectedText && (
+                      <div className="p-3 bg-neutral-100 dark:bg-zinc-800/80 border border-neutral-200 dark:border-zinc-700/60 rounded-xl text-xs text-neutral-800 dark:text-zinc-200 italic leading-relaxed">
+                        «{selectedText}»
+                      </div>
+                    )}
 
-                  <div>
-                    <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-zinc-300">
-                      Tus impresiones o pensamientos:
-                    </label>
-                    <textarea
-                      value={noteInput}
-                      onChange={(e) => setNoteInput(e.target.value)}
-                      rows={4}
-                      placeholder="¿Qué te hizo pensar este fragmento o escena? Anota aquí tus reflexiones..."
-                      className="w-full text-sm border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                      autoFocus
-                    />
+                    <div>
+                      <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-zinc-300">
+                        Tus impresiones o pensamientos:
+                      </label>
+                      <textarea
+                        value={noteInput}
+                        onChange={(e) => setNoteInput(e.target.value)}
+                        rows={4}
+                        placeholder="¿Qué te hizo pensar este fragmento o escena? Anota aquí tus reflexiones..."
+                        className="w-full text-sm border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                        autoFocus
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2">
+                  <div className="flex items-center justify-end gap-2 pt-2 shrink-0 border-t border-black/5 dark:border-white/5">
                     <button
                       onClick={() => setNoteModalOpen(false)}
-                      className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition"
+                      className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition cursor-pointer"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={handleSaveNote}
                       disabled={!noteInput.trim()}
-                      className="px-4 py-2 text-xs font-semibold bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:opacity-90 disabled:opacity-40 rounded-xl transition shadow-sm"
+                      className="px-4 py-2 text-xs font-semibold bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:opacity-90 disabled:opacity-40 rounded-xl transition shadow-sm cursor-pointer"
                     >
                       Guardar Nota
                     </button>
@@ -2091,10 +2516,10 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                                 <span>Pág. {q.page || '—'}</span>
                                 <button
                                   onClick={() => deleteQuote(q.id)}
-                                  className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1"
+                                  className="text-gray-400 hover:text-red-500 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 transition p-1.5 sm:p-1 cursor-pointer touch-manipulation"
                                   title="Eliminar cita"
                                 >
-                                  <Trash2 size={12} />
+                                  <Trash2 size={13} />
                                 </button>
                               </div>
                             </div>
@@ -2126,10 +2551,10 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                                 <span>Pág. {n.page || '—'}</span>
                                 <button
                                   onClick={() => deleteNote(n.id)}
-                                  className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1"
+                                  className="text-gray-400 hover:text-red-500 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 transition p-1.5 sm:p-1 cursor-pointer touch-manipulation"
                                   title="Eliminar nota"
                                 >
-                                  <Trash2 size={12} />
+                                  <Trash2 size={13} />
                                 </button>
                               </div>
                             </div>
@@ -2137,6 +2562,87 @@ export default function BookReaderModal({ book, open, onClose }: Props) {
                         )}
                       </>
                     )}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* TTS Mobile-First Audio Player */}
+          <AnimatePresence>
+            {ttsOpen && (
+              <TTSPlayer
+                currentBookTitle={currentBook.title}
+                currentBookAuthor={currentBook.author}
+                currentBookLanguage={currentBook.language || 'es'}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                segments={tts.segments}
+                currentSegmentIndex={tts.currentSegmentIndex}
+                status={tts.status}
+                rate={tts.rate}
+                voices={tts.voices}
+                selectedVoice={tts.selectedVoice}
+                isSupported={tts.isSupported}
+                autoAdvancePage={tts.autoAdvancePage}
+                onPlay={handleTtsPlay}
+                onPause={tts.pause}
+                onResume={tts.resume}
+                onStop={tts.stop}
+                onNextSegment={tts.nextSegment}
+                onPrevSegment={tts.prevSegment}
+                onSelectSegment={tts.selectSegment}
+                onRateChange={tts.setRate}
+                onVoiceChange={tts.setVoice}
+                onToggleAutoAdvance={tts.toggleAutoAdvance}
+                onClose={handleTtsClose}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Modal de Validación de Inactividad (5 minutos) */}
+          <AnimatePresence>
+            {inactivityModalOpen && (
+              <div
+                className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="inactivity-dialog-title"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="bg-white dark:bg-zinc-900 border border-neutral-200/90 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl max-w-sm w-full text-center space-y-4"
+                >
+                  <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center shadow-inner">
+                    <Clock size={24} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3
+                      id="inactivity-dialog-title"
+                      className="text-base font-bold text-neutral-900 dark:text-white"
+                    >
+                      ¿Sigues leyendo?
+                    </h3>
+                    <p className="text-xs text-neutral-600 dark:text-zinc-400 leading-relaxed px-1">
+                      Llevas un tiempo en esta página. ¿Quieres continuar registrando tu tiempo de lectura?
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <button
+                      onClick={handleContinueReading}
+                      className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs transition shadow-xs cursor-pointer active:scale-[0.98]"
+                    >
+                      Sí, continúo
+                    </button>
+                    <button
+                      onClick={handleExitFromInactivity}
+                      className="w-full py-2.5 px-4 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-neutral-700 dark:text-zinc-300 font-semibold text-xs transition cursor-pointer active:scale-[0.98]"
+                    >
+                      No, salir
+                    </button>
                   </div>
                 </motion.div>
               </div>
